@@ -1,8 +1,5 @@
 streamlit
 pandas
 numpy
-matplotlib.pyplot
-Rectangle
-Polygon
+matplotlib
 seaborn
-datetime
