@@ -200,7 +200,10 @@ def display_pitch_metrics():
     st.write(f"### Pitch Metrics for {selected_pitcher} on {', '.join(selected_dates)}")
     st.dataframe(metrics_df)
 
-
+# Function to display raw data
+def display_raw_data():
+    st.write(f"### Raw Data for {selected_pitcher} on {', '.join(selected_dates)}")
+    st.dataframe(filtered_data)
 
 
 
@@ -211,7 +214,8 @@ pages = {
     "Polar Plots - Understanding Tilt": create_polar_plots,
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
-    "Pitch Metric AVG Table": display_pitch_metrics
+    "Pitch Metric AVG Table": display_pitch_metrics,
+    "Raw Data": display_raw_data
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
 
