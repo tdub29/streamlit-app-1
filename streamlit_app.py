@@ -135,7 +135,7 @@ def create_release_plot():
 
 # Function to create break plot
 def create_break_plot():
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(10, 10))
     sns.scatterplot(data=filtered_data, x='Horzbreak', y='Inducedvertbreak', hue='Autopitchtype', palette=color_map, s=100, edgecolor='black')
     ax.axvline(0, color='grey', linestyle='--')
     ax.axhline(0, color='grey', linestyle='--')
