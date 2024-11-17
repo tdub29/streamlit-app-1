@@ -75,7 +75,7 @@ def plot_pitch_locations():
         axes[i].add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
         plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
         axes[i].add_patch(plate)
-        axes[i].set_title(f'{selected_pitcher} vs {batter_side} Handed Batters on {", ".join(selected_dates)}')
+        axes[i].set_title(f'{selected_pitcher} vs {batter_side} Handed Batters')
         axes[i].set_xlim(-2.5, 2.5)
         axes[i].set_ylim(0, 5)
     
