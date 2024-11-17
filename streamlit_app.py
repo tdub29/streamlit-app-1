@@ -116,7 +116,7 @@ def create_polar_plots():
     fig.legend(handles, pitch_types, title='Pitch Type', bbox_to_anchor=(1.05, 1), loc='upper left')
     
     # Add a main title to the figure
-    plt.suptitle(f'Polar Plots for {selected_pitcher} on {", ".join(selected_dates)}', fontsize=16)
+    plt.suptitle(f'Polar Plots for {selected_pitcher}', fontsize=16)
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     st.pyplot(fig)
@@ -202,7 +202,7 @@ def display_pitch_metrics():
     # Format values to avoid additional decimal places
     styled_df = metrics_df.style.format(precision=1, na_rep="-").set_properties(**{'width': '80px'})  # Adjust width as needed
 
-    st.write(f"### Pitch Metrics for {selected_pitcher} on {', '.join(selected_dates)}")
+    st.write(f"### Pitch Metrics for {selected_pitcher}")
     st.dataframe(styled_df, use_container_width=True)  # Ensures it fits the Streamlit container
 
    
