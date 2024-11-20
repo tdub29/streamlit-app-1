@@ -50,7 +50,7 @@ df['Pitchcategory'] = df['Autopitchtype'].apply(categorize_pitch_type)
 
 # Set up the color palette based on pitch type
 pitch_types = df['Autopitchtype'].unique()
-palette = sns.color_palette('Set1', len(pitch_types))
+palette = sns.color_palette('Set2', len(pitch_types))
 color_map = dict(zip(pitch_types, palette))
 
 # Streamlit Sidebar Filters
