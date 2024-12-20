@@ -10,6 +10,8 @@ from datetime import datetime
 file_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
 df = pd.read_csv(file_path)
 
+df.drop_duplicates(subset=['PitchUID'], inplace=True)
+
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
