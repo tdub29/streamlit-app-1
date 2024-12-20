@@ -177,7 +177,7 @@ def create_break_plot():
     
         # Draw the arrow
         # Draw the blue dashed line with 50% transparency
-        ax.plot([0, x_end], [0, y_end], color='blue', linestyle='- -', alpha=0.5)
+        ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
 
     
     st.pyplot(fig)
