@@ -159,24 +159,24 @@ def create_break_plot():
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
 
     if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns:
-    avg_horz_break = filtered_data['Horzbreak'].mean()
-    avg_arm_angle = filtered_data['armangle_prediction'].mean()
-
-    # Convert angle to radians
-    angle_rad = np.radians(avg_arm_angle)
-
-    # Determine direction sign based on avg_horz_break
-    direction_sign = 1 if avg_horz_break >= 0 else -1
-
-    # Use a fixed length for the arrow
-    length = 10  # Adjust as desired
-
-    # Calculate end coordinates of the arrow
-    x_end = direction_sign * length * np.cos(angle_rad)
-    y_end = length * np.sin(angle_rad)
-
-    # Draw the arrow
-    ax.arrow(0, 0, x_end, y_end, color='red', width=0.2, head_width=1, length_includes_head=True)
+        avg_horz_break = filtered_data['Horzbreak'].mean()
+        avg_arm_angle = filtered_data['armangle_prediction'].mean()
+    
+        # Convert angle to radians
+        angle_rad = np.radians(avg_arm_angle)
+    
+        # Determine direction sign based on avg_horz_break
+        direction_sign = 1 if avg_horz_break >= 0 else -1
+    
+        # Use a fixed length for the arrow
+        length = 10  # Adjust as desired
+    
+        # Calculate end coordinates of the arrow
+        x_end = direction_sign * length * np.cos(angle_rad)
+        y_end = length * np.sin(angle_rad)
+    
+        # Draw the arrow
+        ax.arrow(0, 0, x_end, y_end, color='red', width=0.2, head_width=1, length_includes_head=True)
 
     
     st.pyplot(fig)
