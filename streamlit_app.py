@@ -13,6 +13,14 @@ df = pd.read_csv(file_path)
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
+# Load arm angle CSV
+armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
+armangle_df = pd.read_csv(armangle_path)
+
+# Merge arm angle data into df on 'Pitcher'
+df = df.merge(armangle_df[['Pitcher', 'armangle_prediction']], on='Pitcher', how='left')
+
+
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
 def convert_tilt_to_float(tilt_value):
     try:
@@ -149,6 +157,28 @@ def create_break_plot():
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
     ax.text(glove_side_x, -23, 'Glove Side', fontsize=12, verticalalignment='center', horizontalalignment='center',
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+
+    if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns:
+    avg_horz_break = filtered_data['Horzbreak'].mean()
+    avg_arm_angle = filtered_data['armangle_prediction'].mean()
+
+    # Convert angle to radians
+    angle_rad = np.radians(avg_arm_angle)
+
+    # Determine direction sign based on avg_horz_break
+    direction_sign = 1 if avg_horz_break >= 0 else -1
+
+    # Use a fixed length for the arrow
+    length = 10  # Adjust as desired
+
+    # Calculate end coordinates of the arrow
+    x_end = direction_sign * length * np.cos(angle_rad)
+    y_end = length * np.sin(angle_rad)
+
+    # Draw the arrow
+    ax.arrow(0, 0, x_end, y_end, color='red', width=0.2, head_width=1, length_includes_head=True)
+
+    
     st.pyplot(fig)
 
 # Function to calculate pitch metrics for each pitch type
