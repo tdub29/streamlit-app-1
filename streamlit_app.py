@@ -176,7 +176,8 @@ def create_break_plot():
         y_end = length * np.sin(angle_rad)
     
         # Draw the arrow
-        ax.arrow(0, 0, x_end, y_end, color='red', width=0.2, head_width=1, length_includes_head=True)
+        # Draw the blue dashed line with 50% transparency
+        ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
 
     
     st.pyplot(fig)
