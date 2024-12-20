@@ -169,7 +169,7 @@ def create_break_plot():
         direction_sign = 1 if avg_horz_break >= 0 else -1
     
         # Use a fixed length for the arrow
-        length = 10  # Adjust as desired
+        length = 25  # Adjust as desired
     
         # Calculate end coordinates of the arrow
         x_end = direction_sign * length * np.cos(angle_rad)
