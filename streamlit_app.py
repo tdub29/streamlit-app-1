@@ -164,22 +164,34 @@ def create_break_plot():
         avg_horz_break = filtered_data['Horzbreak'].mean()
         avg_arm_angle = filtered_data['armangle_prediction'].mean()
     
-        # Convert angle to radians
+        # Convert angle to radians for line direction
         angle_rad = np.radians(avg_arm_angle)
     
         # Determine direction sign based on avg_horz_break
         direction_sign = 1 if avg_horz_break >= 0 else -1
     
-        # Use a fixed length for the arrow
+        # Use a fixed length for the line
         length = 25  # Adjust as desired
     
-        # Calculate end coordinates of the arrow
+        # Calculate end coordinates of the line
         x_end = direction_sign * length * np.cos(angle_rad)
         y_end = length * np.sin(angle_rad)
     
-        # Draw the arrow
         # Draw the blue dashed line with 50% transparency
         ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
+
+        # Add a label for the arm angle under the line
+        ax.text(0, -3, f'Arm Angle = {avg_arm_angle:.1f}°', ha='center', va='top', fontsize=12)
+
+        # Draw a small arc to illustrate the angle
+        # If direction_sign is positive, arc from 0° to avg_arm_angle°
+        # If direction_sign is negative, arc from 180° to 180° + avg_arm_angle
+        start_angle = 0 if direction_sign > 0 else 180
+        end_angle = start_angle + avg_arm_angle
+        
+        # Add an arc at the origin with a small radius (10 units) to show the angle visually
+        arc = Arc((0, 0), width=10, height=10, angle=0, theta1=start_angle, theta2=end_angle, color='blue', alpha=0.5)
+        ax.add_patch(arc)
 
     
     st.pyplot(fig)
