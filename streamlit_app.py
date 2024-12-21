@@ -184,10 +184,10 @@ def create_break_plot():
 
         if direction_sign > 0:
             x_label = 1
-            ha_label = 'right'
+            ha_label = 'left'
         else:
             x_label = -1
-            ha_label = 'left'
+            ha_label = 'right'
         
         y_label = -0.5
         ax.text(x_label, y_label, f'Arm Angle = {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
