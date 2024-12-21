@@ -182,17 +182,26 @@ def create_break_plot():
         # Draw the blue dashed line with 50% transparency
         ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
 
-        # Add a label for the arm angle under the line
-        ax.text(0, -3, f'Arm Angle = {avg_arm_angle:.1f}°', ha='center', va='top', fontsize=12)
+        x_label = 0.5 if direction_sign > 0 else -0.5
+        y_label = -0.5
+        ax.text(x_label, y_label, f'Arm Angle = {avg_arm_angle:.1f}°', ha='center', va='top', fontsize=12)
 
         # Draw a small arc to illustrate the angle
         # If direction_sign is positive, arc from 0° to avg_arm_angle°
         # If direction_sign is negative, arc from 180° to 180° + avg_arm_angle
-        start_angle = 0 if direction_sign > 0 else 180
-        end_angle = start_angle + avg_arm_angle
-        
-        # Add an arc at the origin with a small radius (10 units) to show the angle visually
-        arc = Arc((0, 0), width=10, height=10, angle=0, theta1=start_angle, theta2=end_angle, color='blue', alpha=0.5)
+        # Draw a small arc to illustrate the angle
+        if direction_sign > 0:
+            # Line going right: arc from 0 to avg_arm_angle
+            theta1 = 0
+            theta2 = avg_arm_angle
+        else:
+            # Line going left: start from 180° and go backwards by avg_arm_angle
+            # This means the line is at 180 - avg_arm_angle, which is above the horizontal.
+            theta1 = 180 - avg_arm_angle
+            theta2 = 180
+
+        # Add an arc at the origin with a small radius to show the angle visually
+        arc = Arc((0, 0), width=10, height=10, angle=0, theta1=theta1, theta2=theta2, color='blue', alpha=0.5)
         ax.add_patch(arc)
 
     
