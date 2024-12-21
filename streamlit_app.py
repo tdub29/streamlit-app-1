@@ -182,9 +182,16 @@ def create_break_plot():
         # Draw the blue dashed line with 50% transparency
         ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
 
-        x_label = 0.5 if direction_sign > 0 else -0.5
+        if direction_sign > 0:
+            x_label = 1
+            ha_label = 'right'
+        else:
+            x_label = -1
+            ha_label = 'left'
+        
         y_label = -0.5
-        ax.text(x_label, y_label, f'Arm Angle = {avg_arm_angle:.1f}°', ha='center', va='top', fontsize=12)
+        ax.text(x_label, y_label, f'Arm Angle = {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
+
 
         # Draw a small arc to illustrate the angle
         # If direction_sign is positive, arc from 0° to avg_arm_angle°
