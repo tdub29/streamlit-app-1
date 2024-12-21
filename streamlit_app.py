@@ -190,7 +190,7 @@ def create_break_plot():
             ha_label = 'right'
         
         y_label = -0.5
-        ax.text(x_label, y_label, f'Arm Angle = {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
+        ax.text(x_label, y_label, f'Arm Angle = ~ {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
 
 
         # Draw a small arc to illustrate the angle
