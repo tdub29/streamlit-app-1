@@ -7,6 +7,7 @@ import seaborn as sns
 from datetime import datetime
 import math
 from matplotlib.patches import Arc
+from matplotlib.patches import Ellipse
 
 # Load the CSV file
 file_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
@@ -214,6 +215,55 @@ def create_break_plot():
     
     st.pyplot(fig)
 
+
+
+def create_confidence_ellipse():
+    st.write("### Pitch Command Confidence Ellipse by Pitch Type")
+    
+    if filtered_data.empty or 'Horizontalreleaseangle' not in filtered_data.columns or 'Verticalreleaseangle' not in filtered_data.columns:
+        st.warning("Not enough data for Horizontal and Vertical Release Angles to plot confidence ellipse.")
+        return
+    
+    # Filter and group by pitch type
+    pitch_types = filtered_data['Autopitchtype'].unique()
+    
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    for pitch_type in pitch_types:
+        pitch_data = filtered_data[filtered_data['Autopitchtype'] == pitch_type]
+        horz = pitch_data['Horizontalreleaseangle'].dropna()
+        vert = pitch_data['Verticalreleaseangle'].dropna()
+        
+        if len(horz) < 2 or len(vert) < 2:
+            continue  # Skip if insufficient data for this pitch type
+        
+        # Calculate Mean and Covariance
+        mean = [horz.mean(), vert.mean()]
+        cov = np.cov(horz, vert)
+        
+        # Eigen decomposition for ellipse parameters
+        vals, vecs = np.linalg.eigh(cov)
+        order = vals.argsort()[::-1]
+        vals, vecs = vals[order], vecs[:, order]
+        
+        theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
+        width, height = 2 * np.sqrt(vals)
+        
+        # Plot each ellipse
+        ellipse = Ellipse(xy=mean, width=width, height=height, angle=theta, edgecolor='b', facecolor='none', lw=2, label=pitch_type)
+        ax.add_patch(ellipse)
+        ax.scatter(horz, vert, s=10, label=f'{pitch_type} Points', alpha=0.5)
+        ax.scatter(*mean, color='red', marker='x')
+    
+    ax.set_xlabel('Horizontal Release Angle')
+    ax.set_ylabel('Vertical Release Angle')
+    ax.set_title(f'Confidence Ellipse by Pitch Type for {selected_pitcher}')
+    ax.legend()
+    ax.grid(True)
+    
+    st.pyplot(fig)
+
+
 # Function to calculate pitch metrics for each pitch type
 def calculate_pitch_metrics(pitcher_data):
     pitch_type_counts = pitcher_data['Autopitchtype'].value_counts().rename('Count')
@@ -284,6 +334,7 @@ pages = {
     "Polar Plots - Understanding Tilt": create_polar_plots,
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
+    "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
     "Pitch Metric AVG Table": display_pitch_metrics,
     "Raw Data": display_raw_data
 }
