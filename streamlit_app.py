@@ -260,8 +260,8 @@ def create_confidence_ellipse():
             angle=theta, 
             edgecolor=color, 
             facecolor=color, 
-            lw=2, 
-            alpha=0.1,  # 10% opacity fill
+            lw=2.5, 
+            alpha=0.3,  # 10% opacity fill
             label=f'{pitch_type} Ellipse'
         )
         ax.add_patch(ellipse)
