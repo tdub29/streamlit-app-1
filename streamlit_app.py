@@ -261,13 +261,12 @@ def create_confidence_ellipse():
             edgecolor=color, 
             facecolor=color, 
             lw=2.5, 
-            alpha=0.3,  # 10% opacity fill
-            label=f'{pitch_type} Ellipse'
+            alpha=0.3
         )
         ax.add_patch(ellipse)
         
         # Plot scatter points for pitch type
-        ax.scatter(horz, vert, s=30, label=f'{pitch_type} Points', color=color, alpha=0.7, edgecolor='black')
+        ax.scatter(horz, vert, s=30, label=f'{pitch_type}', color=color, alpha=0.7, edgecolor='black')
         ax.scatter(*mean, color='red', marker='x')
     
     ax.set_xlabel('Horizontal Release Angle')
