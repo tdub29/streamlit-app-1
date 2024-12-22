@@ -220,7 +220,7 @@ def create_break_plot():
 def create_confidence_ellipse():
     st.write("### Pitch Command Confidence Ellipse by Pitch Type")
     
-    if filtered_data.empty or 'Horizontalreleaseangle' not in filtered_data.columns or 'Verticalreleaseangle' not in filtered_data.columns:
+    if filtered_data.empty or 'Horzrelangle' not in filtered_data.columns or 'Vertrelangle' not in filtered_data.columns:
         st.warning("Not enough data for Horizontal and Vertical Release Angles to plot confidence ellipse.")
         return
     
@@ -231,8 +231,8 @@ def create_confidence_ellipse():
     
     for pitch_type in pitch_types:
         pitch_data = filtered_data[filtered_data['Autopitchtype'] == pitch_type]
-        horz = pitch_data['Horizontalreleaseangle'].dropna()
-        vert = pitch_data['Verticalreleaseangle'].dropna()
+        horz = pitch_data['Horzrelangle'].dropna()
+        vert = pitch_data['Vertrelangle'].dropna()
         
         if len(horz) < 2 or len(vert) < 2:
             continue  # Skip if insufficient data for this pitch type
