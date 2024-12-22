@@ -220,7 +220,7 @@ def create_break_plot():
 def create_confidence_ellipse():
     st.write("### Pitch Command Confidence Ellipse by Pitch Type")
     
-    if filtered_data.empty or 'Horzrelangle' not in filtered_data.columns or 'Vertrelangle' not in filtered_data.columns:
+    if filtered_data.empty or 'Horizontalreleaseangle' not in filtered_data.columns or 'Verticalreleaseangle' not in filtered_data.columns:
         st.warning("Not enough data for Horizontal and Vertical Release Angles to plot confidence ellipse.")
         return
     
@@ -231,8 +231,8 @@ def create_confidence_ellipse():
     
     for pitch_type in pitch_types:
         pitch_data = filtered_data[filtered_data['Autopitchtype'] == pitch_type]
-        horz = pitch_data['Horzrelangle'].dropna()
-        vert = pitch_data['Vertrelangle'].dropna()
+        horz = pitch_data['Horizontalreleaseangle'].dropna()
+        vert = pitch_data['Verticalreleaseangle'].dropna()
         
         if len(horz) < 2 or len(vert) < 2:
             continue  # Skip if insufficient data for this pitch type
@@ -249,10 +249,25 @@ def create_confidence_ellipse():
         theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
         width, height = 2 * np.sqrt(vals)
         
-        # Plot each ellipse
-        ellipse = Ellipse(xy=mean, width=width, height=height, angle=theta, edgecolor='b', facecolor='none', lw=2, label=pitch_type)
+        # Get the color from the pitch type mapping
+        color = color_map.get(pitch_type, 'gray')  # Fallback to gray if not in color_map
+        
+        # Plot each ellipse with matching color and transparency
+        ellipse = Ellipse(
+            xy=mean, 
+            width=width, 
+            height=height, 
+            angle=theta, 
+            edgecolor=color, 
+            facecolor=color, 
+            lw=2, 
+            alpha=0.1,  # 10% opacity fill
+            label=f'{pitch_type} Ellipse'
+        )
         ax.add_patch(ellipse)
-        ax.scatter(horz, vert, s=10, label=f'{pitch_type} Points', alpha=0.5)
+        
+        # Plot scatter points for pitch type
+        ax.scatter(horz, vert, s=30, label=f'{pitch_type} Points', color=color, alpha=0.7, edgecolor='black')
         ax.scatter(*mean, color='red', marker='x')
     
     ax.set_xlabel('Horizontal Release Angle')
@@ -262,6 +277,7 @@ def create_confidence_ellipse():
     ax.grid(True)
     
     st.pyplot(fig)
+
 
 
 # Function to calculate pitch metrics for each pitch type
