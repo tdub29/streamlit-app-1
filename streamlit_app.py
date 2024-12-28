@@ -463,6 +463,7 @@ def plot_rolling_stuff_plus():
         data=df_grouped,
         x="Date",
         y="tj_stuff_plus",
+        hue='Autopitchtype',
         ax=ax
     )
     ax.set_title(f"Average TJStuff+ by Date for {selected_pitcher}")
