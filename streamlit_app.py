@@ -38,6 +38,20 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
          - ax_diff    = ax - avg_fastball_ax
       6) Flip x0 sign (df["x0"] = df["x0"] * -1) at the end.
     """
+    # 1) Keep only the columns we need
+    needed_cols = [
+        "pitcher",
+        "relside",
+        "relspeed",
+        "spinrate",
+        "extension",
+        "relheight",
+        "ax0",
+        "az0",
+        "autopitchtype"
+    ]
+    df = df[needed_cols].copy()
+    
     # 1) DETERMINE PITCHER HANDEDNESS
     df_hand = (
         df.groupby("pitcher", as_index=False)["relside"].mean()
