@@ -306,7 +306,9 @@ df["datetime"] = (
     + pd.to_timedelta(df["Pitchno"], unit="m")  # add the minutes from noon
 )
 
-df['Pitchtype'] = df['Taggedpitchtype'].fillna(df['Autopitchtype'])
+
+df['Pitchtype'] = df['Taggedpitchtype'].replace('Undefined', np.nan).fillna(df['Autopitchtype'])
+
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
 def convert_tilt_to_float(tilt_value):
