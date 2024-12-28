@@ -308,6 +308,7 @@ df["datetime"] = (
 
 
 df['Pitchtype'] = df['Taggedpitchtype'].replace('Undefined', np.nan).fillna(df['Autopitchtype'])
+df['Pitchtype'] = df['Pitchtype'].replace(['Four-Seam', 'FourSeamFastBall'], 'Fastball')
 
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
