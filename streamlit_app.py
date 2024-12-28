@@ -538,7 +538,7 @@ def display_pitch_metrics():
     
     # Adjust column width by setting a max width on the dataframe
     # Format values to avoid additional decimal places
-    styled_df = metrics_df.style.format(precision=1, na_rep="-").set_properties(**{'width': '80px'})  # Adjust width as needed
+    styled_df = metrics_df.style.format(precision=1, na_rep="-").set_properties(**{'width': '15px'})  # Adjust width as needed
 
     st.write(f"### Pitch Metrics for {selected_pitcher}")
     st.dataframe(styled_df, use_container_width=True)  # Ensures it fits the Streamlit container
