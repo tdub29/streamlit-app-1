@@ -11,6 +11,7 @@ from matplotlib.patches import Ellipse
 import joblib
 import os
 import subprocess
+import sys
 
 try:
     import sklearn
