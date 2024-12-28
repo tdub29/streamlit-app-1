@@ -10,6 +10,7 @@ from matplotlib.patches import Arc
 from matplotlib.patches import Ellipse
 import joblib
 import os
+import sklearn
 
 #############################################
 # 1) DEFINE HELPER FUNCTIONS
