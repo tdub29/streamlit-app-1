@@ -599,7 +599,7 @@ def create_confidence_ellipse():
         
         # Plot scatter points for pitch type
         ax.scatter(horz, vert, s=30, label=f'{pitch_type}', color=color, alpha=0.7, edgecolor='black')
-        ax.scatter(*mean, color='red', marker='x')
+        ax.scatter(*mean, color='blue', marker='x')
     
     ax.set_xlabel('Horizontal Release Angle')
     ax.set_ylabel('Vertical Release Angle')
