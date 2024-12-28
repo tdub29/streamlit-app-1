@@ -185,10 +185,81 @@ df.drop_duplicates(subset=['PitchUID'], inplace=True)
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
+player_overall_avg_relheight = (
+    df.groupby('Pitcher')['Relheight']
+    .mean()
+    .reset_index()
+    .rename(columns={'Relheight': 'player_overall_avg_relheight'})
+)
+
+# -------------------------------
+# 3. Calculate Each Player's Average Relheight per Date (Excluding "Bunnell" and "Jack")
+# -------------------------------
+# Define pitchers to exclude
+excluded_pitchers = ["Bunnell, Jack"]
+
+# Filter out excluded pitchers
+df_non_excluded = df[~df['Pitcher'].isin(excluded_pitchers)].copy()
+
+# Calculate average Relheight per player per date
+player_date_avg_relheight = (
+    df_non_excluded.groupby(['Pitcher', 'Date'])['Relheight']
+    .mean()
+    .reset_index()
+    .rename(columns={'Relheight': 'player_date_avg_relheight'})
+)
+
+# -------------------------------
+# 4. Compute Difference Between Overall and Daily Averages
+# -------------------------------
+# Merge overall averages with daily averages
+player_diff = pd.merge(
+    player_date_avg_relheight,
+    player_overall_avg_relheight,
+    on='Pitcher',
+    how='left'
+)
+
+# Calculate the difference
+player_diff['diff_relheight'] = player_diff['player_overall_avg_relheight'] - player_diff['player_date_avg_relheight']
+
+# -------------------------------
+# 5. Calculate Average Difference per Date
+# -------------------------------
+avg_diff_per_date = (
+    player_diff.groupby('Date')['diff_relheight']
+    .mean()
+    .reset_index()
+    .rename(columns={'diff_relheight': 'avg_diff_relheight'})
+)
+
+# -------------------------------
+# 6. Merge Average Difference Back to Main DataFrame
+# -------------------------------
+df = pd.merge(df, avg_diff_per_date, on='Date', how='left')
+
+# -------------------------------
+# 7. Rename Original 'Relheight' and Create Scaled 'relheight'
+# -------------------------------
+# Rename the original 'Relheight' to 'relheight_uncleaned'
+df.rename(columns={'Relheight': 'relheight_uncleaned'}, inplace=True)
+
+df['avg_diff_relheight'] = df['avg_diff_relheight'].fillna(0)
+
+# Create the new scaled 'relheight' by subtracting the average difference
+df['relheight'] = df['relheight_uncleaned'] - df['avg_diff_relheight']
+
+# -------------------------------
+# 8. Handle Missing Values (Optional)
+# -------------------------------
+# If 'avg_diff_relheight' is NaN (e.g., for dates with no non-excluded pitchers), set it to 0
+
 df_for_model = df.copy()
 
 # Rename columns to lowercase for the feature_engineering function
 df_for_model.columns = [c.lower() for c in df_for_model.columns]
+
+
 
 # Ensure the columns needed by feature_engineering exist
 # (RelSpeed, RelHeight, RelSide, ax0, az0, AutoPitchType, Pitcher, SpinRate, Extension)
