@@ -10,6 +10,13 @@ from matplotlib.patches import Arc
 from matplotlib.patches import Ellipse
 import joblib
 import os
+
+try:
+    import sklearn
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
+    import sklearn
+
 import sklearn
 
 #############################################
