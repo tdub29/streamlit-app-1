@@ -459,6 +459,7 @@ def plot_rolling_stuff_plus():
         data=pitcher_data,
         x="datetime",
         y="tj_stuff_plus",
+        hue='Autopitchtype',
         ax=ax
     )
     ax.set_title(f"Rolling TJStuff+  for {selected_pitcher}")
