@@ -247,12 +247,12 @@ df.rename(columns={'Relheight': 'relheight_uncleaned'}, inplace=True)
 df['avg_diff_relheight'] = df['avg_diff_relheight'].fillna(0)
 
 # Create the new scaled 'relheight' by subtracting the average difference
-df['relheight'] = df['relheight_uncleaned'] - df['avg_diff_relheight']
+df['Relheight'] = df['relheight_uncleaned'] - df['avg_diff_relheight']
 
 # -------------------------------
 # 8. Handle Missing Values (Optional)
-# -------------------------------
-# If 'avg_diff_relheight' is NaN (e.g., for dates with no non-excluded pitchers), set it to 0
+
+df['Relheight'] = df['Relheight'].fillna(df['relheight_uncleaned'])
 
 df_for_model = df.copy()
 
