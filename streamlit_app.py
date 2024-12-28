@@ -483,6 +483,17 @@ def calculate_pitch_metrics(pitcher_data):
     avg_cols = ['Relspeed', 'Spinrate', 'Inducedvertbreak', 'Horzbreak',
                 'Relheight', 'Relside', 'Extension', 'Vertapprangle', 'Horzapprangle']
     pitch_type_averages = pitcher_data.groupby('Autopitchtype')[avg_cols].mean().round(1)
+
+    if 'tj_stuff_plus' in pitcher_data.columns:
+    stuff_plus_mean = (
+        pitcher_data.groupby('Autopitchtype')['tj_stuff_plus']
+                   .mean()
+                   .round(1)
+                   .rename('TJStuff+')
+    )
+    else:
+    # If the column doesn't exist, create an empty series
+    stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
     
     strikes = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'])]
     strike_percentages = (strikes.groupby('Autopitchtype').size() / pitch_type_counts * 100).rename('Strike %').round(1)
@@ -505,6 +516,7 @@ def calculate_pitch_metrics(pitcher_data):
     chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
 
     metrics_df = (pitch_type_counts.to_frame()
+                  .join(stuff_plus_mean) 
                   .join(max_velocity)
                   .join(pitch_type_averages)
                   .join(strike_percentages)
@@ -513,7 +525,7 @@ def calculate_pitch_metrics(pitcher_data):
                   .join(in_zone_whiff_percentages)
                   .join(chase_percentage)
                   .fillna(0))
-    metrics_df.columns = ['P', 'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %', 'Whiff %', 'InZone %', 'InZone Whiff %', 'Chase %']
+    metrics_df.columns = ['P', 'TJStuff+ ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %', 'Whiff %', 'InZone %', 'InZone Whiff %', 'Chase %']
     return metrics_df
 
 # Function to display pitch metrics table in Streamlit
