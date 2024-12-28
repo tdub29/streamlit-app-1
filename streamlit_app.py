@@ -295,6 +295,7 @@ armangle_df = pd.read_csv(armangle_path)
 # Merge arm angle data into df on 'Pitcher'
 df = df.merge(armangle_df[['Pitcher', 'armangle_prediction']], on='Pitcher', how='left')
 
+df.dropna(subset=['Date'], inplace=True)
 df["datetime"] = pd.to_datetime(df["Date"], errors="coerce")
 df["Pitchno"] = pd.to_numeric(df["Pitchno"], errors="coerce")
 
