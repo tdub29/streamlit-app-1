@@ -247,12 +247,13 @@ df.rename(columns={'Relheight': 'relheight_uncleaned'}, inplace=True)
 df['avg_diff_relheight'] = df['avg_diff_relheight'].fillna(0)
 
 # Create the new scaled 'relheight' by subtracting the average difference
-df['Relheight'] = df['relheight_uncleaned'] - df['avg_diff_relheight']
+df['Relheight'] = df['relheight_uncleaned'] + df['avg_diff_relheight']
 
 # -------------------------------
 # 8. Handle Missing Values (Optional)
 
 df['Relheight'] = df['Relheight'].fillna(df['relheight_uncleaned'])
+
 
 df_for_model = df.copy()
 
@@ -305,6 +306,7 @@ df["datetime"] = (
     + pd.to_timedelta(df["Pitchno"], unit="m")  # add the minutes from noon
 )
 
+df['Pitchtype'] = df['Taggedpitchtype'].fillna(df['Autopitchtype'])
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
 def convert_tilt_to_float(tilt_value):
@@ -339,10 +341,10 @@ def categorize_pitch_type(pitch_type):
     return None
 
 # Create a new column 'Pitchcategory' to categorize pitches
-df['Pitchcategory'] = df['Autopitchtype'].apply(categorize_pitch_type)
+df['Pitchcategory'] = df['Pitchtype'].apply(categorize_pitch_type)
 
 # Set up the color palette based on pitch type
-pitch_types = df['Autopitchtype'].unique()
+pitch_types = df['Pitchtype'].unique()
 palette = sns.color_palette('Set2', len(pitch_types))
 color_map = dict(zip(pitch_types, palette))
 
@@ -363,7 +365,7 @@ def plot_pitch_locations():
     
     for i, batter_side in enumerate(batter_sides):
         side_data = filtered_data[filtered_data['Batterside'] == batter_side]
-        sns.scatterplot(data=side_data, x='Platelocside', y='Platelocheight', hue='Autopitchtype',
+        sns.scatterplot(data=side_data, x='Platelocside', y='Platelocheight', hue='Pitchtype',
                         palette=color_map, s=100, edgecolor='black', ax=axes[i])
         axes[i].add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
         plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
@@ -387,7 +389,7 @@ def create_polar_plots():
     axs[0].set_theta_zero_location('N')
     axs[0].set_theta_direction(-1)
     sc1 = axs[0].scatter(tilt_radians, filtered_data['Relspeed'], 
-                         c=filtered_data['Autopitchtype'].map(color_map), s=100)
+                         c=filtered_data['Pitchtype'].map(color_map), s=100)
     axs[0].set_title('Velocity vs. Tilt', fontsize=14)
     axs[0].set_ylim(filtered_data['Relspeed'].min() - 5, filtered_data['Relspeed'].max() + 5)
     axs[0].set_xticks(np.radians(np.arange(0, 360, 30)))
@@ -397,7 +399,7 @@ def create_polar_plots():
     axs[1].set_theta_zero_location('N')
     axs[1].set_theta_direction(-1)
     sc2 = axs[1].scatter(tilt_radians, filtered_data['Spinrate'], 
-                         c=filtered_data['Autopitchtype'].map(color_map), s=100)
+                         c=filtered_data['Pitchtype'].map(color_map), s=100)
     axs[1].set_title('Spin Rate vs. Tilt', fontsize=14)
     axs[1].set_ylim(filtered_data['Spinrate'].min() - 500, filtered_data['Spinrate'].max() + 500)
     axs[1].set_xticks(np.radians(np.arange(0, 360, 30)))
@@ -418,7 +420,7 @@ def create_polar_plots():
 # Function to create release plot with mirrored x-axis
 def create_release_plot():
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.scatterplot(data=filtered_data, x='Relside', y='Relheight', hue='Autopitchtype', palette=color_map, s=100, edgecolor='black')
+    sns.scatterplot(data=filtered_data, x='Relside', y='Relheight', hue='Pitchtype', palette=color_map, s=100, edgecolor='black')
     
     # Set x-axis limits and invert them to mirror the plot
     ax.set_xlim(4, -4)  # This reverses the x-axis direction
@@ -429,7 +431,7 @@ def create_release_plot():
 # Function to create break plot
 def create_break_plot():
     fig, ax = plt.subplots(figsize=(10, 10))
-    sns.scatterplot(data=filtered_data, x='Horzbreak', y='Inducedvertbreak', hue='Autopitchtype', palette=color_map, s=100, edgecolor='black')
+    sns.scatterplot(data=filtered_data, x='Horzbreak', y='Inducedvertbreak', hue='Pitchtype', palette=color_map, s=100, edgecolor='black')
     ax.axvline(0, color='grey', linestyle='--')
     ax.axhline(0, color='grey', linestyle='--')
     ax.set_xlim(-25, 25)
@@ -524,7 +526,7 @@ def plot_rolling_stuff_plus():
     # Group by Date and compute the average tj_stuff_plus
     df_grouped = (
         df_temp
-        .groupby(["Date","Autopitchtype"], as_index=False)["tj_stuff_plus"]
+        .groupby(["Date","Pitchtype"], as_index=False)["tj_stuff_plus"]
         .mean()
     )
 
@@ -534,7 +536,7 @@ def plot_rolling_stuff_plus():
         data=df_grouped,
         x="Date",
         y="tj_stuff_plus",
-        hue='Autopitchtype',
+        hue='Pitchtype',
         ax=ax
     )
     ax.set_title(f"Average TJStuff+ by Date for {selected_pitcher}")
@@ -555,12 +557,12 @@ def create_confidence_ellipse():
         return
     
     # Filter and group by pitch type
-    pitch_types = filtered_data['Autopitchtype'].unique()
+    pitch_types = filtered_data['Pitchtype'].unique()
     
     fig, ax = plt.subplots(figsize=(10, 8))
     
     for pitch_type in pitch_types:
-        pitch_data = filtered_data[filtered_data['Autopitchtype'] == pitch_type]
+        pitch_data = filtered_data[filtered_data['Pitchtype'] == pitch_type]
         horz = pitch_data['Horzrelangle'].dropna()
         vert = pitch_data['Vertrelangle'].dropna()
         
@@ -611,14 +613,14 @@ def create_confidence_ellipse():
 
 # Function to calculate pitch metrics for each pitch type
 def calculate_pitch_metrics(pitcher_data):
-    pitch_type_counts = pitcher_data['Autopitchtype'].value_counts().rename('Count')
+    pitch_type_counts = pitcher_data['Pitchtype'].value_counts().rename('Count')
     avg_cols = ['Relspeed', 'Spinrate', 'Inducedvertbreak', 'Horzbreak',
                 'Relheight', 'Relside', 'Extension', 'Vertapprangle', 'Horzapprangle']
-    pitch_type_averages = pitcher_data.groupby('Autopitchtype')[avg_cols].mean().round(1)
+    pitch_type_averages = pitcher_data.groupby('Pitchtype')[avg_cols].mean().round(1)
 
     if 'tj_stuff_plus' in pitcher_data.columns:
         stuff_plus_mean = (
-            pitcher_data.groupby('Autopitchtype')['tj_stuff_plus']
+            pitcher_data.groupby('Pitchtype')['tj_stuff_plus']
                        .mean()
                        .round(1)
                        .rename('TJStuff+')
@@ -628,23 +630,23 @@ def calculate_pitch_metrics(pitcher_data):
         stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
     
     strikes = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'])]
-    strike_percentages = (strikes.groupby('Autopitchtype').size() / pitch_type_counts * 100).rename('Strike %').round(1)
+    strike_percentages = (strikes.groupby('Pitchtype').size() / pitch_type_counts * 100).rename('Strike %').round(1)
     
-    swinging_strikes = pitcher_data[pitcher_data['Pitchcall'] == 'StrikeSwinging'].groupby('Autopitchtype').size()
-    total_swings = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Autopitchtype').size()
+    swinging_strikes = pitcher_data[pitcher_data['Pitchcall'] == 'StrikeSwinging'].groupby('Pitchtype').size()
+    total_swings = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
     whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').fillna(0).round(1)
     
-    max_velocity = pitcher_data.groupby('Autopitchtype')['Relspeed'].max().rename('Max velo').round(1)
+    max_velocity = pitcher_data.groupby('Pitchtype')['Relspeed'].max().rename('Max velo').round(1)
     
-    in_zone_total = pitcher_data[pitcher_data['Inzone']].groupby('Autopitchtype').size()
+    in_zone_total = pitcher_data[pitcher_data['Inzone']].groupby('Pitchtype').size()
     in_zone_percentage = (in_zone_total / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
     
-    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Pitchcall'] == 'StrikeSwinging')].groupby('Autopitchtype').size()
-    in_zone_swings = pitcher_data[pitcher_data['Inzone'] & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Autopitchtype').size()
+    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Pitchcall'] == 'StrikeSwinging')].groupby('Pitchtype').size()
+    in_zone_swings = pitcher_data[pitcher_data['Inzone'] & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
     in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').fillna(0).round(1)
     
-    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Autopitchtype').size()
-    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby('Autopitchtype').size()
+    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
+    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby('Pitchtype').size()
     chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
 
     metrics_df = (pitch_type_counts.to_frame()
