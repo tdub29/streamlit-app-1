@@ -60,7 +60,8 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         "relheight",
         "ax0",
         "az0",
-        "autopitchtype"
+        "autopitchtype",
+        "pitchuid"
     ]
     df = df[needed_cols].copy()
     
