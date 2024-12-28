@@ -603,6 +603,8 @@ def create_confidence_ellipse():
     
     ax.set_xlabel('Horizontal Release Angle')
     ax.set_ylabel('Vertical Release Angle')
+    ax.set_xlim(-6, 6)
+    ax.set_ylim(-6, 6)
     ax.set_title(f'Confidence Ellipse by Pitch Type for {selected_pitcher}')
     ax.legend()
     ax.grid(True)
