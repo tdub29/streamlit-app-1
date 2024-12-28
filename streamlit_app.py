@@ -440,36 +440,33 @@ def plot_rolling_stuff_plus():
         st.write("tj_stuff_plus column not found. Make sure you ran the model/scaling steps.")
         return
 
-    # 1) Create a combined 'datetime' column if you haven't already
-    #    (If you already have a 'Datetime' column, skip this step)
+ # Create a copy and filter for the selected pitcher
     df_temp = filtered_data.copy()
-    
-
-    # 2) Sort by datetime for correct chronological order
-    df_temp = df_temp.sort_values("datetime")
-
-    # 3) Group by Pitcher & compute rolling average of tj_stuff_plus
-    #    (Here we pick a rolling window of 10 pitches, min_periods=1 so it starts immediately)
-
-
-    # 4) Filter again by the selected pitcher (optional, if you want only one line)
-    #    If you want to see all pitchers, skip this line
-    pitcher_data = df_temp[df_temp["Pitcher"] == selected_pitcher]
-    if pitcher_data.empty:
-        st.write(f"No data available for {selected_pitcher} after building datetime.")
+    df_temp = df_temp[df_temp["Pitcher"] == selected_pitcher]
+    if df_temp.empty:
+        st.write(f"No data available for {selected_pitcher}.")
         return
 
-    # 5) Plot
+    # Convert 'Date' to a proper datetime if it's just a string
+    df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
+
+    # Group by Date and compute the average tj_stuff_plus
+    df_grouped = (
+        df_temp
+        .groupby("Date", as_index=False)["tj_stuff_plus"]
+        .mean()
+    )
+
+    # Plot
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.lineplot(
-        data=pitcher_data,
-        x="datetime",
+        data=df_grouped,
+        x="Date",
         y="tj_stuff_plus",
-        hue='Autopitchtype',
         ax=ax
     )
-    ax.set_title(f"Rolling TJStuff+  for {selected_pitcher}")
-    ax.set_xlabel("Date-Time")
+    ax.set_title(f"Average TJStuff+ by Date for {selected_pitcher}")
+    ax.set_xlabel("Date")
     ax.set_ylabel("TJStuff+")
     plt.xticks(rotation=45)
 
