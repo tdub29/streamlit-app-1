@@ -62,6 +62,7 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
     # 3) MIRROR FOR LEFT-HANDED PITCHERS
     df["ax"] = np.where(df["pitcher_hand"] == "L", -df["ax"], df["ax"])
+    print(df["x0"].iloc[0])
     df["x0"] = np.where(df["pitcher_hand"] == "L", -df["x0"], df["x0"])
 
     # 4) MOST-USED FASTBALL LOGIC
