@@ -485,15 +485,15 @@ def calculate_pitch_metrics(pitcher_data):
     pitch_type_averages = pitcher_data.groupby('Autopitchtype')[avg_cols].mean().round(1)
 
     if 'tj_stuff_plus' in pitcher_data.columns:
-    stuff_plus_mean = (
-        pitcher_data.groupby('Autopitchtype')['tj_stuff_plus']
-                   .mean()
-                   .round(1)
-                   .rename('TJStuff+')
-    )
+        stuff_plus_mean = (
+            pitcher_data.groupby('Autopitchtype')['tj_stuff_plus']
+                       .mean()
+                       .round(1)
+                       .rename('TJStuff+')
+        )
     else:
     # If the column doesn't exist, create an empty series
-    stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
+        stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
     
     strikes = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'])]
     strike_percentages = (strikes.groupby('Autopitchtype').size() / pitch_type_counts * 100).rename('Strike %').round(1)
