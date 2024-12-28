@@ -453,7 +453,7 @@ def plot_rolling_stuff_plus():
     # Group by Date and compute the average tj_stuff_plus
     df_grouped = (
         df_temp
-        .groupby("Date", as_index=False)["tj_stuff_plus"]
+        .groupby(["Date","Autopitchtype"], as_index=False)["tj_stuff_plus"]
         .mean()
     )
 
