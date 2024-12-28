@@ -8,6 +8,145 @@ from datetime import datetime
 import math
 from matplotlib.patches import Arc
 from matplotlib.patches import Ellipse
+import joblib
+
+#############################################
+# 1) DEFINE HELPER FUNCTIONS
+#############################################
+def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Feature engineering for a baseball dataset with columns:
+      - relspeed      : pitch velocity
+      - spinrate      : spin rate
+      - extension     : release extension
+      - relheight     : release height
+      - relside       : release side (+ => typically R, - => L)
+      - ax0           : horizontal pitch break
+      - az0           : vertical pitch break
+      - autopitchtype : pitch type (e.g., "Four-Seam", "Sinker", etc.)
+      - pitcher       : pitcher identifier
+      ... other columns as needed
+    Steps:
+      1) Determine pitcher handedness from average 'relside' (R if > 0, else L).
+      2) Rename columns to standard references (start_speed, ax, az, etc.).
+      3) Mirror horizontal release & break for left-handed pitchers.
+      4) From fastball types ["Four-Seam","Sinker"], find the most-used fastball
+         per (pitcher). If there's a tie, pick the one with the highest average speed.
+      5) Merge those metrics back & compute diffs:
+         - speed_diff = start_speed - avg_fastball_speed
+         - az_diff    = az - avg_fastball_az
+         - ax_diff    = ax - avg_fastball_ax
+      6) Flip x0 sign (df["x0"] = df["x0"] * -1) at the end.
+    """
+    # 1) DETERMINE PITCHER HANDEDNESS
+    df_hand = (
+        df.groupby("pitcher", as_index=False)["relside"].mean()
+          .rename(columns={"relside": "avg_side"})
+    )
+    df_hand["pitcher_hand"] = np.where(df_hand["avg_side"] > 0, "R", "L")
+
+    # Merge handedness info back
+    df = pd.merge(df, df_hand[["pitcher", "pitcher_hand"]], on="pitcher", how="left")
+
+    # 2) RENAME COLUMNS
+    df = df.rename(columns={
+        "relspeed":      "start_speed",
+        "spinrate":      "spin_rate",
+        "extension":     "extension",
+        "relheight":     "z0",
+        "relside":       "x0",
+        "ax0":           "ax",         
+        "az0":           "az",         
+        "autopitchtype": "pitch_type"
+    })
+
+    # 3) MIRROR FOR LEFT-HANDED PITCHERS
+    df["ax"] = np.where(df["pitcher_hand"] == "L", -df["ax"], df["ax"])
+    df["x0"] = np.where(df["pitcher_hand"] == "L", -df["x0"], df["x0"])
+
+    # 4) MOST-USED FASTBALL LOGIC
+    fastball_types = ["Four-Seam", "Sinker"]
+    df_fb = df[df["pitch_type"].isin(fastball_types)].copy()
+
+    df_agg = (
+        df_fb.groupby(["pitcher", "pitch_type"], as_index=False)
+             .agg(
+                 avg_fastball_speed=("start_speed", "mean"),
+                 avg_fastball_az=("az", "mean"),
+                 avg_fastball_ax=("ax", "mean"),
+                 count=("start_speed", "count")
+             )
+    )
+    df_agg = df_agg.sort_values(["count", "avg_fastball_speed"], ascending=[False, False])
+    df_agg = df_agg.drop_duplicates(subset=["pitcher"], keep="first")
+
+    df = pd.merge(
+        df,
+        df_agg[["pitcher", "avg_fastball_speed", "avg_fastball_az", "avg_fastball_ax"]],
+        on=["pitcher"],
+        how="left"
+    )
+
+    df["speed_diff"] = df["start_speed"] - df["avg_fastball_speed"]
+    df["az_diff"]    = df["az"] - df["avg_fastball_az"]
+    df["ax_diff"]    = df["ax"] - df["avg_fastball_ax"]
+
+    # 5) Flip x0 sign
+    df["x0"] = df["x0"] * -1
+
+    return df
+
+
+def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
+    """
+    1) Load the trained model from disk.
+    2) Predict using the engineered features.
+    3) Add 'target' column.
+    4) Apply z-score and tj_stuff_plus using pre-known baseline stats.
+    Returns a new df with 'target', 'target_zscore', 'tj_stuff_plus'.
+    """
+
+    # -- LOAD MODEL
+    # Get the directory of the currently running .py file
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+    # Construct the path to your joblib file
+    model_path = os.path.join(BASE_DIR, "lgbm_model_2020_2023.joblib")
+    
+    # Load the model
+    model = joblib.load(model_path)
+
+    # -- DEFINE FEATURES
+    features = [
+        "start_speed",
+        "spin_rate",
+        "extension",
+        "az",
+        "ax",
+        "x0",
+        "z0",
+        "speed_diff",
+        "az_diff",
+        "ax_diff"
+    ]
+
+    # -- MAKE PREDICTIONS
+    predictions = model.predict(df_for_model[features])
+    df_for_model["target"] = predictions
+
+    # -- APPLY z-score & stuff-plus scaling
+    target_mean_2023 = 0.003621590946415154   
+    target_std_2023  = 0.006897066586011802
+
+    df_for_model["target_zscore"] = (
+        (df_for_model["target"] - target_mean_2023) / target_std_2023
+    )
+    df_for_model["tj_stuff_plus"] = (
+        100 - (df_for_model["target_zscore"] * 10)
+    )
+
+    return df_for_model
+
 
 # Load the CSV file
 file_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
@@ -18,6 +157,37 @@ df.drop_duplicates(subset=['PitchUID'], inplace=True)
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
+df_for_model = df.copy()
+
+# Rename columns to lowercase for the feature_engineering function
+df_for_model.columns = [c.lower() for c in df_for_model.columns]
+
+# Ensure the columns needed by feature_engineering exist
+# (RelSpeed, RelHeight, RelSide, ax0, az0, AutoPitchType, Pitcher, SpinRate, Extension)
+# If any are missing, you may need to handle that or rename them properly.
+
+# 1) FEATURE ENGINEERING
+df_for_model = feature_engineering(df_for_model)
+
+# 2) RUN MODEL + SCALING
+df_for_model = run_model_and_scale(df_for_model)
+
+# OPTIONAL: Merge the new columns (target, tj_stuff_plus) back into the original "df"
+# so that you can reference them in your existing plots/tables if desired.
+# We'll merge on a unique identifier you have (e.g., Pitchuid), if it exists in both.
+# For demonstration, let's assume "pitchuid" (lowercase in df_for_model).
+if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
+    # We select only the new columns from df_for_model we want to bring back
+    merged_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus"]
+    df = pd.merge(
+        df, 
+        df_for_model[merged_cols], 
+        left_on="Pitchuid", right_on="pitchuid", 
+        how="left"
+    )
+    # You might drop the duplicate "pitchuid" column from df
+    df.drop(columns=["pitchuid"], inplace=True, errors="ignore")
+    
 # Load arm angle CSV
 armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
 armangle_df = pd.read_csv(armangle_path)
