@@ -311,6 +311,8 @@ df["datetime"] = (
 df['Pitchtype'] = df['Taggedpitchtype'].replace('Undefined', np.nan).fillna(df['Autopitchtype'])
 df['Pitchtype'] = df['Pitchtype'].replace(['Four-Seam', 'FourSeamFastBall'], 'Fastball')
 
+df.to_csv('data/streamlit_2024_fall_data.csv', index=False)
+
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
 def convert_tilt_to_float(tilt_value):
