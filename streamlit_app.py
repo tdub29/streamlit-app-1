@@ -12,6 +12,7 @@ import joblib
 import os
 import subprocess
 import sys
+import lightgbm
 
 try:
     import sklearn
