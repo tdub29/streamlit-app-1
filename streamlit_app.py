@@ -9,6 +9,7 @@ import math
 from matplotlib.patches import Arc
 from matplotlib.patches import Ellipse
 import joblib
+import os
 
 #############################################
 # 1) DEFINE HELPER FUNCTIONS
