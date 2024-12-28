@@ -525,7 +525,7 @@ def calculate_pitch_metrics(pitcher_data):
                   .join(in_zone_whiff_percentages)
                   .join(chase_percentage)
                   .fillna(0))
-    metrics_df.columns = ['P', 'TJStuff+ ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %', 'Whiff %', 'InZone %', 'InZone Whiff %', 'Chase %']
+    metrics_df.columns = ['P', 'TJStuff+' ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %', 'Whiff %', 'InZone %', 'InZone Whiff %', 'Chase %']
     return metrics_df
 
 # Function to display pitch metrics table in Streamlit
