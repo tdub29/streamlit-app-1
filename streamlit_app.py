@@ -223,6 +223,11 @@ armangle_df = pd.read_csv(armangle_path)
 # Merge arm angle data into df on 'Pitcher'
 df = df.merge(armangle_df[['Pitcher', 'armangle_prediction']], on='Pitcher', how='left')
 
+df["datetime"] = pd.to_datetime(
+    df["Date"].astype(str) + " " + df["Time"].astype(str),
+    errors="coerce"  # invalid parses -> NaT
+)
+
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
 def convert_tilt_to_float(tilt_value):
@@ -414,6 +419,57 @@ def create_break_plot():
     st.pyplot(fig)
 
 
+def plot_rolling_stuff_plus():
+    """
+    Plots a rolling average of tj_stuff_plus over time, by pitch, for the selected pitcher.
+    Expects 'Date', 'Time', and 'tj_stuff_plus' in the DataFrame, plus 'Pitcher'.
+    """
+    # If there's no data, bail out early
+    if filtered_data.empty:
+        st.write("No data available for the selected filters.")
+        return
+
+    # Check if 'tj_stuff_plus' exists
+    if "tj_stuff_plus" not in filtered_data.columns:
+        st.write("tj_stuff_plus column not found. Make sure you ran the model/scaling steps.")
+        return
+
+    # 1) Create a combined 'datetime' column if you haven't already
+    #    (If you already have a 'Datetime' column, skip this step)
+    df_temp = filtered_data.copy()
+    
+
+    # 2) Sort by datetime for correct chronological order
+    df_temp = df_temp.sort_values("datetime")
+
+    # 3) Group by Pitcher & compute rolling average of tj_stuff_plus
+    #    (Here we pick a rolling window of 10 pitches, min_periods=1 so it starts immediately)
+
+
+    # 4) Filter again by the selected pitcher (optional, if you want only one line)
+    #    If you want to see all pitchers, skip this line
+    pitcher_data = df_temp[df_temp["Pitcher"] == selected_pitcher]
+    if pitcher_data.empty:
+        st.write(f"No data available for {selected_pitcher} after building datetime.")
+        return
+
+    # 5) Plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.lineplot(
+        data=pitcher_data,
+        x="datetime",
+        y="tj_stuff_plus",
+        ax=ax
+    )
+    ax.set_title(f"Rolling TJStuff+  for {selected_pitcher}")
+    ax.set_xlabel("Date-Time")
+    ax.set_ylabel("TJStuff+")
+    plt.xticks(rotation=45)
+
+    st.pyplot(fig)
+
+
+
 
 def create_confidence_ellipse():
     st.write("### Pitch Command Confidence Ellipse by Pitch Type")
@@ -560,6 +616,7 @@ pages = {
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
     "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
+    "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
     "Pitch Metric AVG Table": display_pitch_metrics,
     "Raw Data": display_raw_data
 }
