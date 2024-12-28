@@ -223,9 +223,14 @@ armangle_df = pd.read_csv(armangle_path)
 # Merge arm angle data into df on 'Pitcher'
 df = df.merge(armangle_df[['Pitcher', 'armangle_prediction']], on='Pitcher', how='left')
 
-df["datetime"] = pd.to_datetime(
-    df["Date"].astype(str) + " " + df["Time"].astype(str),
-    errors="coerce"  # invalid parses -> NaT
+df["datetime"] = pd.to_datetime(df["Date"], errors="coerce")
+
+# 2) Add 12 hours (to shift from midnight to noon) 
+#    plus the minutes indicated by 'Time'
+df["datetime"] = (
+    df["datetime"]
+    + pd.to_timedelta(12, unit="h")         # shift to noon
+    + pd.to_timedelta(df["Time"], unit="m")  # add the minutes from noon
 )
 
 
