@@ -330,7 +330,7 @@ df['Tilt_float'] = df['Tilt'].apply(convert_tilt_to_float)
 
 # Identify in-zone pitches based on PlateLocSide and PlateLocHeight
 df['Inzone'] = df.apply(
-    lambda row: -0.83 <= row['Platelocside'] <= 0.83 and 1.5 <= row['Platelocheight'] <= 3.6, axis=1)
+    lambda row: -0.83 <= row['Platelocside'] <= 0.83 and 1.5 <= row['Platelocheight'] <= 3.5, axis=1)
 
 # Define pitch categories based on initial pitch types
 pitch_categories = {
