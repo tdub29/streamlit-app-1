@@ -436,8 +436,28 @@ def create_release_plot():
 
 # Function to create break plot
 def create_break_plot():
+    # Define a custom color palette
+    color_map = {
+        'Fastball': '#1f77b4',  # Blue
+        'Slider': '#ff7f0e',    # Orange
+        'Curveball': '#2ca02c', # Green
+        'Changeup': '#d62728',  # Red
+        'Cutter': '#9467bd',    # Purple
+        'Sinker': '#8c564b',    # Brown
+        'Splitter': '#e377c2',  # Pink
+        'Knuckleball': '#7f7f7f' # Gray
+    }
+
     fig, ax = plt.subplots(figsize=(10, 10))
-    sns.scatterplot(data=filtered_data, x='Horzbreak', y='Inducedvertbreak', hue='Pitchtype', palette=color_map, s=100, edgecolor='black')
+    sns.scatterplot(
+        data=filtered_data, 
+        x='Horzbreak', 
+        y='Inducedvertbreak', 
+        hue='Pitchtype', 
+        palette=color_map,  # Use custom color map
+        s=100, 
+        edgecolor='black'
+    )
     ax.axvline(0, color='grey', linestyle='--')
     ax.axhline(0, color='grey', linestyle='--')
     ax.set_xlim(-25, 25)
@@ -483,16 +503,12 @@ def create_break_plot():
 
 
         # Draw a small arc to illustrate the angle
-        # If direction_sign is positive, arc from 0° to avg_arm_angle°
-        # If direction_sign is negative, arc from 180° to 180° + avg_arm_angle
-        # Draw a small arc to illustrate the angle
         if direction_sign > 0:
             # Line going right: arc from 0 to avg_arm_angle
             theta1 = 0
             theta2 = avg_arm_angle
         else:
             # Line going left: start from 180° and go backwards by avg_arm_angle
-            # This means the line is at 180 - avg_arm_angle, which is above the horizontal.
             theta1 = 180 - avg_arm_angle
             theta2 = 180
 
@@ -500,7 +516,6 @@ def create_break_plot():
         arc = Arc((0, 0), width=10, height=10, angle=0, theta1=theta1, theta2=theta2, color='blue', alpha=0.5)
         ax.add_patch(arc)
 
-    
     st.pyplot(fig)
 
 
