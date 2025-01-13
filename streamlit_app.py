@@ -521,10 +521,10 @@ def plot_rolling_stuff_plus():
 
  # Create a copy and filter for the selected pitcher
     df_temp = filtered_data.copy()
-    df_temp = df_temp[df_temp["Pitcher"] == selected_pitcher]
-    if df_temp.empty:
-        st.write(f"No data available for {selected_pitcher}.")
-        return
+    # df_temp = df_temp[df_temp["Pitcher"] == selected_pitcher]
+    # if df_temp.empty:
+    #     st.write(f"No data available for {selected_pitcher}.")
+    #     return
 
     # Convert 'Date' to a proper datetime if it's just a string
     df_temp["Date"] = pd.to_datetime(df_temp["Date"], errors="coerce")
