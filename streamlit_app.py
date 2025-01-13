@@ -370,7 +370,7 @@ def plot_pitch_locations():
         'Fastball': '#1f77b4',  # Blue
         'Slider': '#ff7f0e',    # Orange
         'Curveball': '#2ca02c', # Green
-        'Changeup': '#d62728',  # Red
+        'ChangeUp': '#d62728',  # Red
         'Cutter': '#9467bd',    # Purple
         'Sinker': '#8c564b',    # Brown
         'Splitter': '#e377c2',  # Pink
