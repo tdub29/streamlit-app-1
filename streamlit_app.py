@@ -365,17 +365,45 @@ filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(select
 
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
+    # Define the color map for pitch types
+    color_map = {
+        'Fastball': '#1f77b4',  # Blue
+        'Slider': '#ff7f0e',    # Orange
+        'Curveball': '#2ca02c', # Green
+        'Changeup': '#d62728',  # Red
+        'Cutter': '#9467bd',    # Purple
+        'Sinker': '#8c564b',    # Brown
+        'Splitter': '#e377c2',  # Pink
+        'Knuckleball': '#7f7f7f' # Gray
+    }
+
+
     fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     batter_sides = ['Right', 'Left']
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
     
     for i, batter_side in enumerate(batter_sides):
         side_data = filtered_data[filtered_data['Batterside'] == batter_side]
-        sns.scatterplot(data=side_data, x='Platelocside', y='Platelocheight', hue='Pitchtype',
-                        palette=color_map, s=100, edgecolor='black', ax=axes[i])
+        
+        sns.scatterplot(
+            data=side_data, 
+            x='Platelocside', 
+            y='Platelocheight', 
+            hue='Pitchtype',
+            palette=color_map, 
+            s=100, 
+            edgecolor='black', 
+            ax=axes[i]
+        )
+        
+        # Add the strike zone rectangle
         axes[i].add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
+        
+        # Add home plate polygon
         plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
         axes[i].add_patch(plate)
+        
+        # Set the plot title
         axes[i].set_title(f'{selected_pitcher} vs {batter_side} Handed Batters')
         axes[i].set_xlim(-2.5, 2.5)
         axes[i].set_ylim(0, 5)
