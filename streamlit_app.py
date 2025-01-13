@@ -548,6 +548,8 @@ def plot_rolling_stuff_plus():
     ax.set_title(f"Average TJStuff+ by Date for {selected_pitcher}")
     ax.set_xlabel("Date")
     ax.set_ylabel("TJStuff+")
+    # Set static y-axis limits
+    ax.set_ylim(60, 125)
     plt.xticks(rotation=45)
 
     st.pyplot(fig)
