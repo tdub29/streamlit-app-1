@@ -1,6 +1,6 @@
-# 🎈 Blank app template
+# TORERO PITCHING
 
-A simple Streamlit app template for you to modify!
+So much of this repo is thanks to the great work of Thomas Nestico, Kyle Bland, Max Bay, for providing examples of models or other essential code in their githubs
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
 
