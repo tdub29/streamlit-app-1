@@ -361,10 +361,12 @@ color_map = {
         'Slider': '#ff7f0e',    # Orange
         'Curveball': '#2ca02c', # Green
         'ChangeUp': '#d62728',  # Red
+        'Changeup': '#d62728',  # Red
         'Cutter': '#9467bd',    # Purple
         'Sinker': '#8c564b',    # Brown
         'Splitter': '#e377c2',  # Pink
-        'Knuckleball': '#7f7f7f' # Gray
+        'Knuckleball': '#7f7f7f', # Gray
+        'Other': '#7f7f7f' # Gray
     }
 
 
