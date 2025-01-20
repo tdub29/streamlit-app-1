@@ -369,7 +369,7 @@ filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(select
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
     # Define the color map for pitch types
-        color_map = {
+    color_map = {
         'fastball': '#1f77b4',   # Blue
         'twoseamfastball': '#1f77b4',  # Blue
         'slider': '#ff7f0e',     # Orange
