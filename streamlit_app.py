@@ -758,12 +758,12 @@ def display_raw_data():
 st.sidebar.title("Navigation")
 pages = {
     "Pitch Locations - RHH/LHH": plot_pitch_locations,
-    "Polar Plots - Understanding Tilt": create_polar_plots,
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
+    "Pitch Metric AVG Table": display_pitch_metrics,
     "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
     "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
-    "Pitch Metric AVG Table": display_pitch_metrics,
+    "Polar Plots - Understanding Tilt": create_polar_plots,
     "Raw Data": display_raw_data
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
