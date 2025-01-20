@@ -372,7 +372,7 @@ color_map = {
 st.sidebar.header("Filter Options")
 # Order the pitchers in descending order
 sorted_pitchers = df['Pitcher'].unique()
-sorted_pitchers = sorted(sorted_pitchers)
+sorted_pitchers = sorted(sorted_pitchers, reverse = False)
 
 # Create the selectbox with the sorted pitchers
 selected_pitcher = st.sidebar.selectbox("Select Pitcher", sorted_pitchers)
