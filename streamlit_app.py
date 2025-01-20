@@ -370,7 +370,12 @@ color_map = {
 
 # Streamlit Sidebar Filters
 st.sidebar.header("Filter Options")
-selected_pitcher = st.sidebar.selectbox("Select Pitcher", df['Pitcher'].unique())
+# Order the pitchers in descending order
+sorted_pitchers = df['Pitcher'].unique()
+sorted_pitchers = sorted(sorted_pitchers)
+
+# Create the selectbox with the sorted pitchers
+selected_pitcher = st.sidebar.selectbox("Select Pitcher", sorted_pitchers)
 dates_available = df[df['Pitcher'] == selected_pitcher]['Date'].unique()
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
