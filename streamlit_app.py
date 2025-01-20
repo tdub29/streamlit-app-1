@@ -369,18 +369,20 @@ filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(select
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
     # Define the color map for pitch types
-    color_map = {
-        'Fastball': '#1f77b4',  # Blue
-        'TwoSeamFastBall': '#1f77b4',  # Blue
-        'Slider': '#ff7f0e',    # Orange
-        'Curveball': '#2ca02c', # Green
-        'ChangeUp': '#d62728',  # Red
-        'Cutter': '#9467bd',    # Purple
-        'Sinker': '#8c564b',    # Brown
-        'Splitter': '#e377c2',  # Pink
-        'Knuckleball': '#7f7f7f' # Gray
+        color_map = {
+        'fastball': '#1f77b4',   # Blue
+        'twoseamfastball': '#1f77b4',  # Blue
+        'slider': '#ff7f0e',     # Orange
+        'curveball': '#2ca02c',  # Green
+        'changeup': '#d62728',   # Red
+        'cutter': '#9467bd',     # Purple
+        'sinker': '#8c564b',     # Brown
+        'splitter': '#e377c2',   # Pink
+        'knuckleball': '#7f7f7f' # Gray
     }
 
+    # Normalize pitch types to lowercase for consistency
+    filtered_data['pitch_type'] = filtered_data['pitch_type'].str.strip().str.lower()
 
     fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     batter_sides = ['Right', 'Left']
