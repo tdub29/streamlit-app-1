@@ -355,7 +355,18 @@ df['Pitchcategory'] = df['Pitchtype'].apply(categorize_pitch_type)
 # Set up the color palette based on pitch type
 pitch_types = df['Pitchtype'].unique()
 palette = sns.color_palette('Set2', len(pitch_types))
-color_map = dict(zip(pitch_types, palette))
+color_map = {
+        'Fastball': '#1f77b4',  # Blue
+        'TwoSeamFastBall': '#1f77b4',  # Blue
+        'Slider': '#ff7f0e',    # Orange
+        'Curveball': '#2ca02c', # Green
+        'ChangeUp': '#d62728',  # Red
+        'Cutter': '#9467bd',    # Purple
+        'Sinker': '#8c564b',    # Brown
+        'Splitter': '#e377c2',  # Pink
+        'Knuckleball': '#7f7f7f' # Gray
+    }
+
 
 # Streamlit Sidebar Filters
 st.sidebar.header("Filter Options")
@@ -384,16 +395,6 @@ def plot_pitch_locations():
     # # Normalize pitch types to lowercase for consistency
     # filtered_data['pitch_type'] = filtered_data['pitch_type'].str.strip().str.lower()
 
-    # # Ensure all pitch types in filtered_data have a color
-    # unique_pitch_types = set(filtered_data['pitch_type'].unique())
-    # missing_keys = unique_pitch_types - set(color_map.keys())
-    
-    # if missing_keys:
-    #     default_color = '#cccccc'  # Default gray for unknown pitch types
-    #     for key in missing_keys:
-    #         color_map[key] = default_color
-
-    # Create the plot
     fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     batter_sides = ['Right', 'Left']
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
@@ -405,7 +406,7 @@ def plot_pitch_locations():
             data=side_data, 
             x='Platelocside', 
             y='Platelocheight', 
-            hue='pitch_type',
+            hue='Pitchtype',
             palette=color_map, 
             s=100, 
             edgecolor='black', 
@@ -425,7 +426,6 @@ def plot_pitch_locations():
         axes[i].set_ylim(0, 5)
     
     st.pyplot(fig)
-
 
 # Function to create polar plots in Streamlit
 def create_polar_plots():
@@ -482,16 +482,6 @@ def create_release_plot():
 # Function to create break plot
 def create_break_plot():
     # Define a custom color palette
-    color_map = {
-        'Fastball': '#1f77b4',  # Blue
-        'Slider': '#ff7f0e',    # Orange
-        'Curveball': '#2ca02c', # Green
-        'ChangeUp': '#d62728',  # Red
-        'Cutter': '#9467bd',    # Purple
-        'Sinker': '#8c564b',    # Brown
-        'Splitter': '#e377c2',  # Pink
-        'Knuckleball': '#7f7f7f' # Gray
-    }
 
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.scatterplot(
