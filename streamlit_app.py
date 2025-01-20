@@ -119,6 +119,8 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     df["az_diff"]    = df["az"] - df["avg_fastball_az"]
     df["ax_diff"]    = df["ax"] - df["avg_fastball_ax"]
 
+    df["is_fastball"] = df["pitch_type"].isin(fastball_types)
+
     # 5) Flip x0 sign
     df["x0"] = df["x0"] * -1
 
@@ -139,7 +141,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
     # Construct the path to your joblib file
-    model_path = os.path.join(BASE_DIR, "lgbm_model_2020_2023.joblib")
+    model_path = os.path.join(BASE_DIR, "NCAA_STUFF_PLUSS_24.joblib")
     
     # Load the model
     model = joblib.load(model_path)
@@ -155,7 +157,8 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         "z0",
         "speed_diff",
         "az_diff",
-        "ax_diff"
+        "ax_diff",
+        "is_fastball"
     ]
 
     # -- MAKE PREDICTIONS
@@ -163,8 +166,8 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     df_for_model["target"] = predictions
 
     # -- APPLY z-score & stuff-plus scaling
-    target_mean_2023 = 0.003621590946415154   
-    target_std_2023  = 0.006897066586011802
+    target_mean_2023 = 0.01697617582536014   
+    target_std_2023  = 0.009500746919929495
 
     df_for_model["target_zscore"] = (
         (df_for_model["target"] - target_mean_2023) / target_std_2023
