@@ -371,6 +371,7 @@ def plot_pitch_locations():
     # Define the color map for pitch types
     color_map = {
         'Fastball': '#1f77b4',  # Blue
+        'TwoSeamFastball': '#1f77b4',  # Blue
         'Slider': '#ff7f0e',    # Orange
         'Curveball': '#2ca02c', # Green
         'ChangeUp': '#d62728',  # Red
