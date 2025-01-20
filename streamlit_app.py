@@ -384,6 +384,16 @@ def plot_pitch_locations():
     # Normalize pitch types to lowercase for consistency
     filtered_data['pitch_type'] = filtered_data['pitch_type'].str.strip().str.lower()
 
+    # Ensure all pitch types in filtered_data have a color
+    unique_pitch_types = set(filtered_data['pitch_type'].unique())
+    missing_keys = unique_pitch_types - set(color_map.keys())
+    
+    if missing_keys:
+        default_color = '#cccccc'  # Default gray for unknown pitch types
+        for key in missing_keys:
+            color_map[key] = default_color
+
+    # Create the plot
     fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     batter_sides = ['Right', 'Left']
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
@@ -395,7 +405,7 @@ def plot_pitch_locations():
             data=side_data, 
             x='Platelocside', 
             y='Platelocheight', 
-            hue='Pitchtype',
+            hue='pitch_type',
             palette=color_map, 
             s=100, 
             edgecolor='black', 
@@ -415,6 +425,7 @@ def plot_pitch_locations():
         axes[i].set_ylim(0, 5)
     
     st.pyplot(fig)
+
 
 # Function to create polar plots in Streamlit
 def create_polar_plots():
