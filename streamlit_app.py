@@ -369,29 +369,29 @@ filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(select
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
     # Define the color map for pitch types
-    color_map = {
-        'fastball': '#1f77b4',   # Blue
-        'twoseamfastball': '#1f77b4',  # Blue
-        'slider': '#ff7f0e',     # Orange
-        'curveball': '#2ca02c',  # Green
-        'changeup': '#d62728',   # Red
-        'cutter': '#9467bd',     # Purple
-        'sinker': '#8c564b',     # Brown
-        'splitter': '#e377c2',   # Pink
-        'knuckleball': '#7f7f7f' # Gray
-    }
+    # color_map = {
+    #     'fastball': '#1f77b4',   # Blue
+    #     'twoseamfastball': '#1f77b4',  # Blue
+    #     'slider': '#ff7f0e',     # Orange
+    #     'curveball': '#2ca02c',  # Green
+    #     'changeup': '#d62728',   # Red
+    #     'cutter': '#9467bd',     # Purple
+    #     'sinker': '#8c564b',     # Brown
+    #     'splitter': '#e377c2',   # Pink
+    #     'knuckleball': '#7f7f7f' # Gray
+    # }
 
-    # Normalize pitch types to lowercase for consistency
-    filtered_data['pitch_type'] = filtered_data['pitch_type'].str.strip().str.lower()
+    # # Normalize pitch types to lowercase for consistency
+    # filtered_data['pitch_type'] = filtered_data['pitch_type'].str.strip().str.lower()
 
-    # Ensure all pitch types in filtered_data have a color
-    unique_pitch_types = set(filtered_data['pitch_type'].unique())
-    missing_keys = unique_pitch_types - set(color_map.keys())
+    # # Ensure all pitch types in filtered_data have a color
+    # unique_pitch_types = set(filtered_data['pitch_type'].unique())
+    # missing_keys = unique_pitch_types - set(color_map.keys())
     
-    if missing_keys:
-        default_color = '#cccccc'  # Default gray for unknown pitch types
-        for key in missing_keys:
-            color_map[key] = default_color
+    # if missing_keys:
+    #     default_color = '#cccccc'  # Default gray for unknown pitch types
+    #     for key in missing_keys:
+    #         color_map[key] = default_color
 
     # Create the plot
     fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
