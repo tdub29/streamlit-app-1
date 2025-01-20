@@ -338,7 +338,7 @@ df['Inzone'] = df.apply(
 # Define pitch categories based on initial pitch types
 pitch_categories = {
     "Breaking Ball": ["Slider", "Curveball"],
-    "Fastball": ["Fastball", "Four-Seam", "Sinker", "Cutter"],
+    "Fastball": ["Fastball", "Four-Seam", "Sinker", "Cutter", "TwoSeamFastBall"],
     "Offspeed": ["ChangeUp", "Splitter"]
 }
 
