@@ -287,7 +287,7 @@ df_for_model = run_model_and_scale(df_for_model)
 # For demonstration, let's assume "pitchuid" (lowercase in df_for_model).
 if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
     # We select only the new columns from df_for_model we want to bring back
-    merged_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus"]
+    merged_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus", "xWhiff"]
     df = pd.merge(
         df, 
         df_for_model[merged_cols], 
