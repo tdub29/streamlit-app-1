@@ -121,8 +121,8 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
     df["is_fastball"] = df["pitch_type"].isin(fastball_types)
 
-    # 5) Flip x0 sign
-    df["x0"] = df["x0"] * -1
+    df["z0"] = df["z0"] * 12
+    df["x0"] = df["x0"] * 12
 
     return df
 
