@@ -176,7 +176,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         100 - (df_for_model["target_zscore"] * 10)
     )
 
-    whiff_model_path = os.path.join(BASE_DIR, "whiff_model_grouped.joblib")
+    whiff_model_path = os.path.join(BASE_DIR, "whiff_model_grouped_training.joblib")
     whiff_model = joblib.load(whiff_model_path)
 
     # --- PREDICT WHIFF (xWhiff) ---
