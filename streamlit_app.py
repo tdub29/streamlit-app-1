@@ -58,8 +58,8 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         "spinrate",
         "extension",
         "relheight",
-        "ax0",
-        "az0",
+        "horzbreak",
+        "inducedvertbreak",
         "autopitchtype",
         "pitchuid"
     ]
@@ -82,8 +82,8 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         "extension":     "extension",
         "relheight":     "z0",
         "relside":       "x0",
-        "ax0":           "ax",         
-        "az0":           "az",         
+        "horzbreak":           "ax",         
+        "inducedvertbreak":           "az",         
         "autopitchtype": "pitch_type"
     })
 
