@@ -831,15 +831,18 @@ def plot_ideal_pitch_locations():
     pitcher_hand = filtered_data["pitcher_hand"].iloc[0]
     opposite_hand = "R" if pitcher_hand == "L" else "L"
     
-    # Plot both heatmaps side by side.
+    # Plot both heatmaps side by side using scatterplots instead of pivoting.
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
-    pivot_same = df_same.pivot_table(index="PZ", columns="PX", values="run_value", aggfunc="mean")
-    pivot_opposite = df_opposite.pivot_table(index="PZ", columns="PX", values="run_value", aggfunc="mean")
-    sns.heatmap(pivot_same, ax=axes[0], cmap="RdBu_r", cbar=True)
-    sns.heatmap(pivot_opposite, ax=axes[1], cmap="RdBu_r", cbar=True)
-
-    axes[0].invert_yaxis()
+    
+    # Plot same-side data
+    sns.scatterplot(data=df_same, x="PX", y="PZ", hue="run_value", palette="RdBu_r", ax=axes[0])
+    axes[0].invert_yaxis()  # so higher PZ values are at the top
+    axes[0].set_title(f"Vs. {pitcher_hand}HH")
+    
+    # Plot opposite-side data
+    sns.scatterplot(data=df_opposite, x="PX", y="PZ", hue="run_value", palette="RdBu_r", ax=axes[1])
     axes[1].invert_yaxis()
+    axes[1].set_title(f"Vs. {opposite_hand}HH")
     
     # Add the strike zone rectangle and home plate polygon.
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
@@ -847,13 +850,9 @@ def plot_ideal_pitch_locations():
         ax.add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
         plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
         ax.add_patch(plate)
-
-    axes[0].set_xlim(-2.5, 2.5)
-    axes[0].set_ylim(0, 5)
-    axes[1].set_xlim(-2.5, 2.5)
-    axes[1].set_ylim(0, 5)
-    axes[0].set_title(f"Vs. {pitcher_hand}HH")
-    axes[1].set_title(f"Vs. {opposite_hand}HH")
+        ax.set_xlim(-2.5, 2.5)
+        ax.set_ylim(0, 5)
+    
     plt.tight_layout()
     st.pyplot(fig)
 
