@@ -753,7 +753,7 @@ def plot_ideal_pitch_locations():
 
     # --- STEP 4: Define Plate Location Grid Parameters ---
     st.write("#### Adjust Plate Location Grid")
-    px_min  = 2
+    px_min  = -2
     px_max  = 2
     px_step = 0.05
     pz_min  = 0.5
