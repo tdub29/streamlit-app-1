@@ -764,6 +764,7 @@ def plot_ideal_pitch_locations():
 
     # The model requires these features:
     # Make sure required_features includes "same_side"
+    # Ensure required_features includes "same_side"
     required_features = [
         "start_speed", "spin_rate", "extension",
         "az", "ax", "x0", "z0", "PX", "PZ", "same_side"
@@ -772,14 +773,17 @@ def plot_ideal_pitch_locations():
     def simulate_pitch_grid(pitch_type):
         """
         For the given pitch type, compute median values (from filtered_data)
-        for all required features (except PX, PZ, and same_side), build a grid over PX and PZ,
+        for all features (except PX, PZ, and same_side), build a grid over PX and PZ,
         then split the grid into two versions (same_side=1 and same_side=0) and predict.
         """
         sub = filtered_data[filtered_data["Pitchtype"] == pitch_type]
         if sub.empty:
             return pd.DataFrame(), pd.DataFrame()
+        # Exclude "same_side" for computing medians
+        features_for_medians = [f for f in required_features if f != "same_side"]
+        medians = sub[features_for_medians].median(numeric_only=True).to_dict()
     
-        medians = sub[required_features].median(numeric_only=True).to_dict()
+        # Create grid arrays for PX and PZ.
         px_values = np.arange(px_min, px_max + px_step, px_step)
         pz_values = np.arange(pz_min, pz_max + pz_step, pz_step)
         grid_rows = []
@@ -788,28 +792,31 @@ def plot_ideal_pitch_locations():
                 row = medians.copy()
                 row["PX"] = px
                 row["PZ"] = pz
-                row["Pitchtype"] = pitch_type  # reference only
+                row["Pitchtype"] = pitch_type  # for reference
                 grid_rows.append(row)
         grid_df = pd.DataFrame(grid_rows)
     
-        # Split into same_side and opposite-side versions
+        # Split into same-side and opposite-side versions
         df_same = grid_df.copy()
         df_opposite = grid_df.copy()
         df_same["same_side"] = 1
         df_opposite["same_side"] = 0
     
-        # Predict on both grids
+        # Predict on both versions
         df_same["run_value"] = rv_model.predict(df_same[required_features])
         df_opposite["run_value"] = rv_model.predict(df_opposite[required_features])
         return df_same, df_opposite
     
-    # --- In your calling code ---
+    df_same.loc[df_same["pitcher_hand"] == "L", "PX"] *= -1
+    df_opposite.loc[df_opposite["pitcher_hand"] == "L", "PX"] *= -1
+    
+    # --- Calling Code ---
     df_same, df_opposite = simulate_pitch_grid(selected_pitch_type)
     if df_same.empty or df_opposite.empty:
         st.write("No data available for the selected pitch type.")
         return
     
-    # Store pitcher's hand and its opposite in variables.
+    # Retrieve pitcher's hand and compute its opposite.
     pitcher_hand = filtered_data["pitcher_hand"].iloc[0]
     opposite_hand = "R" if pitcher_hand == "L" else "L"
     
@@ -822,6 +829,7 @@ def plot_ideal_pitch_locations():
     axes[0].invert_yaxis()
     axes[1].invert_yaxis()
     
+    # Add the strike zone rectangle and home plate polygon.
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
     for ax in axes:
         ax.add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
