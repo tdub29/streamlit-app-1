@@ -716,7 +716,7 @@ def plot_ideal_pitch_locations():
             "Extension":          "extension",
             "Relheight":          "z0",
             "Relside":            "x0",
-            "Rorzbreak":          "ax",
+            "Horzbreak":          "ax",
             "Inducedvertbreak":   "az"
         }, inplace=True)
     
