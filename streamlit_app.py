@@ -737,6 +737,9 @@ def plot_ideal_pitch_locations():
     # Multiply x0, ax, and PX by -1 for rows where pitcher_hand is "L"
     filtered_data.loc[filtered_data["pitcher_hand"] == "L", ["x0", "ax", "PX"]] *= -1
 
+    filtered_data["z0"] = filtered_data["z0"] * 12
+    filtered_data["x0"] = filtered_data["x0"] * 12
+
     # --- STEP 3: Let the User Select a Single Pitch Type ---
     available_pitch_types = filtered_data["Pitchtype"].dropna().unique().tolist()
     if not available_pitch_types:
