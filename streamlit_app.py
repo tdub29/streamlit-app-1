@@ -758,7 +758,7 @@ def plot_ideal_pitch_locations():
     px_max  = 2
     px_step = 0.05
     pz_min  = 0.5
-    pz_max  = 4
+    pz_max  = 4.5
     pz_step = 0.05
 
     # --- STEP 5: Load the Model ---
