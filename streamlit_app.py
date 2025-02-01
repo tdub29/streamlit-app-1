@@ -833,7 +833,7 @@ def plot_ideal_pitch_locations():
     opposite_hand = "R" if pitcher_hand == "L" else "L"
     
         # Set the continuous color range from -0.1 to 0.1.
-    norm = Normalize(vmin=-0.1, vmax=0.1)
+    norm = Normalize(vmin=-0.05, vmax=0.1)
     
     # Plot both heatmaps side by side using scatterplots.
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
