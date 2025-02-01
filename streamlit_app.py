@@ -836,7 +836,7 @@ def plot_ideal_pitch_locations():
     norm = Normalize(vmin=-0.1, vmax=0.1)
     
     # Plot both heatmaps side by side using scatterplots.
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
     
     # Plot same-side data
     sns.scatterplot(data=df_same, x="PX", y="PZ", hue="run_value",
