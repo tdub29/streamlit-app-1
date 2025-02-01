@@ -747,12 +747,12 @@ def plot_ideal_pitch_locations():
 
     # --- STEP 4: Define Plate Location Grid Parameters ---
     st.write("#### Adjust Plate Location Grid")
-    px_min  = st.number_input("PX min", value=-2.0)
-    px_max  = st.number_input("PX max", value=2.0)
-    px_step = st.number_input("PX step", value=0.05)
-    pz_min  = st.number_input("PZ min", value=0.5)
-    pz_max  = st.number_input("PZ max", value=4.0)
-    pz_step = st.number_input("PZ step", value=0.05)
+    px_min  = 2
+    px_max  = 2
+    px_step = 0.05
+    pz_min  = 0.5
+    pz_max  = 4
+    pz_step = 0.05
 
     # --- STEP 5: Load the Model ---
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
