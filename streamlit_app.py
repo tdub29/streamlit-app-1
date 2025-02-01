@@ -807,14 +807,22 @@ def plot_ideal_pitch_locations():
         df_opposite["run_value"] = rv_model.predict(df_opposite[required_features])
         return df_same, df_opposite
     
-    df_same.loc[df_same["pitcher_hand"] == "L", "PX"] *= -1
-    df_opposite.loc[df_opposite["pitcher_hand"] == "L", "PX"] *= -1
-    
     # --- Calling Code ---
     df_same, df_opposite = simulate_pitch_grid(selected_pitch_type)
     if df_same.empty or df_opposite.empty:
         st.write("No data available for the selected pitch type.")
         return
+    
+    # Assign pitcher_hand from filtered_data to each simulation grid
+    pitcher_hand_value = filtered_data["pitcher_hand"].iloc[0]
+    df_same["pitcher_hand"] = pitcher_hand_value
+    df_opposite["pitcher_hand"] = pitcher_hand_value
+    
+ 
+    # Flip PX for left-handed pitchers in both grids
+    df_same.loc[df_same["pitcher_hand"] == "L", "PX"] *= -1
+    df_opposite.loc[df_opposite["pitcher_hand"] == "L", "PX"] *= -1
+
     
     # Retrieve pitcher's hand and compute its opposite.
     pitcher_hand = filtered_data["pitcher_hand"].iloc[0]
