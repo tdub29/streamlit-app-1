@@ -1,10 +1,10 @@
 streamlit
 pandas
-numpy
 matplotlib
 seaborn
 joblib
 scikit-learn
 lightgbm
 xgboost==2.1.0
-catboost
+numpy==1.23.5
+catboost==1.2.5
