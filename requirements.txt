@@ -6,3 +6,4 @@ seaborn
 joblib
 scikit-learn
 lightgbm
+xgboost==2.1.0
