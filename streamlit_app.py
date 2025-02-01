@@ -831,16 +831,21 @@ def plot_ideal_pitch_locations():
     pitcher_hand = filtered_data["pitcher_hand"].iloc[0]
     opposite_hand = "R" if pitcher_hand == "L" else "L"
     
-    # Plot both heatmaps side by side using scatterplots instead of pivoting.
+        # Set the continuous color range from -0.1 to 0.1.
+    norm = Normalize(vmin=-0.1, vmax=0.1)
+    
+    # Plot both heatmaps side by side using scatterplots.
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
     
     # Plot same-side data
-    sns.scatterplot(data=df_same, x="PX", y="PZ", hue="run_value", palette="RdBu_r", ax=axes[0])
+    sns.scatterplot(data=df_same, x="PX", y="PZ", hue="run_value",
+                    palette="RdBu_r", ax=axes[0], hue_norm=norm)
     axes[0].invert_yaxis()  # so higher PZ values are at the top
     axes[0].set_title(f"Vs. {pitcher_hand}HH")
     
     # Plot opposite-side data
-    sns.scatterplot(data=df_opposite, x="PX", y="PZ", hue="run_value", palette="RdBu_r", ax=axes[1])
+    sns.scatterplot(data=df_opposite, x="PX", y="PZ", hue="run_value",
+                    palette="RdBu_r", ax=axes[1], hue_norm=norm)
     axes[1].invert_yaxis()
     axes[1].set_title(f"Vs. {opposite_hand}HH")
     
