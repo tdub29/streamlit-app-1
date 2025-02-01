@@ -763,26 +763,23 @@ def plot_ideal_pitch_locations():
     rv_model = joblib.load(rv_model_path)
 
     # The model requires these features:
+    # Make sure required_features includes "same_side"
     required_features = [
         "start_speed", "spin_rate", "extension",
-        "az", "ax", "x0", "z0", "PX", "PZ"
+        "az", "ax", "x0", "z0", "PX", "PZ", "same_side"
     ]
-
-    # --- STEP 6: Build the Prediction Grid for the Selected Pitch Type ---
+    
     def simulate_pitch_grid(pitch_type):
         """
         For the given pitch type, compute median values (from filtered_data)
-        for all required features (except PX and PZ), build a grid over PX and PZ,
-        and predict outcomes using the rv_with_plateloc model.
+        for all required features (except PX, PZ, and same_side), build a grid over PX and PZ,
+        then split the grid into two versions (same_side=1 and same_side=0) and predict.
         """
         sub = filtered_data[filtered_data["Pitchtype"] == pitch_type]
         if sub.empty:
-            return pd.DataFrame()
-
-        # Use the median values for the other features as baseline.
+            return pd.DataFrame(), pd.DataFrame()
+    
         medians = sub[required_features].median(numeric_only=True).to_dict()
-
-        # Create grid arrays for PX and PZ.
         px_values = np.arange(px_min, px_max + px_step, px_step)
         pz_values = np.arange(pz_min, pz_max + pz_step, pz_step)
         grid_rows = []
@@ -791,38 +788,52 @@ def plot_ideal_pitch_locations():
                 row = medians.copy()
                 row["PX"] = px
                 row["PZ"] = pz
-                row["Pitchtype"] = pitch_type  # For reference only.
+                row["Pitchtype"] = pitch_type  # reference only
                 grid_rows.append(row)
         grid_df = pd.DataFrame(grid_rows)
-        
-        # Predict using the model.
-        grid_df["run_value"] = rv_model.predict(grid_df[required_features])
-        return grid_df
-
     
-
-    result_df = simulate_pitch_grid(selected_pitch_type)
-    if result_df.empty:
+        # Split into same_side and opposite-side versions
+        df_same = grid_df.copy()
+        df_opposite = grid_df.copy()
+        df_same["same_side"] = 1
+        df_opposite["same_side"] = 0
+    
+        # Predict on both grids
+        df_same["run_value"] = rv_model.predict(df_same[required_features])
+        df_opposite["run_value"] = rv_model.predict(df_opposite[required_features])
+        return df_same, df_opposite
+    
+    # --- In your calling code ---
+    df_same, df_opposite = simulate_pitch_grid(selected_pitch_type)
+    if df_same.empty or df_opposite.empty:
         st.write("No data available for the selected pitch type.")
         return
-
-    # If you create a separate simulation grid (sim_df) that might not have been adjusted,
-    # flip its PX values for left-handed pitchers before plotting:
-    result_df.loc[result_df["pitcher_hand"] == "L", "PX"] *= -1
-
-    # --- STEP 7: Plot the Heatmap ---
-    fig, ax = plt.subplots(figsize=(8, 6))
-    pivot_data = result_df.pivot_table(
-        index="PZ", columns="PX", values="run_value", aggfunc="mean"
-    )
-    sns.heatmap(pivot_data, ax=ax, cmap="RdBu_r", cbar=True)
-    ax.invert_yaxis()  # So higher PZ values appear at the top.
-    ax.set_title(f"{selected_pitch_type} - Predicted Value")
-    ax.set_xlabel("PX")
-    ax.set_ylabel("PZ")
     
+    # Store pitcher's hand and its opposite in variables.
+    pitcher_hand = filtered_data["pitcher_hand"].iloc[0]
+    opposite_hand = "R" if pitcher_hand == "L" else "L"
+    
+    # Plot both heatmaps side by side.
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    pivot_same = df_same.pivot_table(index="PZ", columns="PX", values="run_value", aggfunc="mean")
+    pivot_opposite = df_opposite.pivot_table(index="PZ", columns="PX", values="run_value", aggfunc="mean")
+    sns.heatmap(pivot_same, ax=axes[0], cmap="RdBu_r", cbar=True)
+    sns.heatmap(pivot_opposite, ax=axes[1], cmap="RdBu_r", cbar=True)
+    axes[0].invert_yaxis()
+    axes[1].invert_yaxis()
+    
+    plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
+    for ax in axes:
+        ax.add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
+        plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
+        ax.add_patch(plate)
+    
+    axes[0].set_title(f"Vs. {pitcher_hand}HH")
+    axes[1].set_title(f"Vs. {opposite_hand}HH")
     plt.tight_layout()
     st.pyplot(fig)
+
+
 
 
 
