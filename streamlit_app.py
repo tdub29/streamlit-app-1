@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import lightgbm
+import xgboost as xgb
 
 try:
     import sklearn
