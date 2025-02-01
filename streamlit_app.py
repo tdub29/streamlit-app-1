@@ -14,6 +14,8 @@ import subprocess
 import sys
 import lightgbm
 import xgboost as xgb
+import catboost
+
 
 try:
     import sklearn
