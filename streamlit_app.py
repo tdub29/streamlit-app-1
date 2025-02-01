@@ -837,6 +837,7 @@ def plot_ideal_pitch_locations():
     pivot_opposite = df_opposite.pivot_table(index="PZ", columns="PX", values="run_value", aggfunc="mean")
     sns.heatmap(pivot_same, ax=axes[0], cmap="RdBu_r", cbar=True)
     sns.heatmap(pivot_opposite, ax=axes[1], cmap="RdBu_r", cbar=True)
+
     axes[0].invert_yaxis()
     axes[1].invert_yaxis()
     
@@ -846,7 +847,11 @@ def plot_ideal_pitch_locations():
         ax.add_patch(Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none'))
         plate = Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='k', facecolor='none')
         ax.add_patch(plate)
-    
+
+    axes[0].set_xlim(-2.5, 2.5)
+    axes[0].set_ylim(0, 5)
+    axes[1].set_xlim(-2.5, 2.5)
+    axes[1].set_ylim(0, 5)
     axes[0].set_title(f"Vs. {pitcher_hand}HH")
     axes[1].set_title(f"Vs. {opposite_hand}HH")
     plt.tight_layout()
