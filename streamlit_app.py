@@ -683,6 +683,144 @@ def create_confidence_ellipse():
     
     st.pyplot(fig)
 
+#############################################
+# Ideal Pitch Locations Page
+#############################################
+def plot_ideal_pitch_locations():
+    """
+    Simulate and display ideal pitch locations using the rv_with_plateloc.joblib model.
+    The model expects these features:
+      ["start_speed", "spin_rate", "extension", "az", "ax", "x0", "z0", "PX", "PZ"]
+
+    This function:
+      1. Renames raw columns to the model-ready names.
+      2. Maps plate location columns (PlateLocSide/PlateLocHeight) to PX/PZ.
+      3. Lets the user select one pitch type from filtered_data.
+      4. Builds a grid over (PX, PZ) using median values (from filtered_data for the selected pitch type)
+         for the other features.
+      5. Predicts outcomes on this grid using the model and displays a heatmap.
+    """
+    st.write("## Ideal Pitch Locations")
+
+    # Compute the average 'relside' per pitcher and assign pitcher_hand
+    filtered_data["avg_relside"] = filtered_data.groupby("pitcher")["Relside"].transform("mean")
+    filtered_data["pitcher_hand"] = np.where(filtered_data["avg_relside"] < 0, "L", "R")
+
+    
+    
+    # --- STEP 1: Map Raw Columns to Engineered Feature Names (if not already mapped) ---
+    if "start_speed" not in filtered_data.columns:
+        filtered_data.rename(columns={
+            "Relspeed":           "start_speed",
+            "Spinrate":           "spin_rate",
+            "Extension":          "extension",
+            "Relheight":          "z0",
+            "Relside":            "x0",
+            "Rorzbreak":          "ax",
+            "Inducedvertbreak":   "az"
+        }, inplace=True)
+    
+    # Map plate location columns.
+    if "PX" not in filtered_data.columns and "Platelocside" in filtered_data.columns:
+        filtered_data["PX"] = filtered_data["platelocside"]
+    if "PZ" not in filtered_data.columns and "Platelocheight" in filtered_data.columns:
+        filtered_data["PZ"] = filtered_data["platelocheight"]
+    
+    # --- STEP 2: Check for Data Availability ---
+    if filtered_data.empty:
+        st.write("No data available for simulation.")
+        return
+
+    # Multiply x0, ax, and PX by -1 for rows where pitcher_hand is "L"
+    filtered_data.loc[filtered_data["pitcher_hand"] == "L", ["x0", "ax", "PX"]] *= -1
+
+    # --- STEP 3: Let the User Select a Single Pitch Type ---
+    available_pitch_types = filtered_data["Pitchtype"].dropna().unique().tolist()
+    if not available_pitch_types:
+        st.write("No pitchtype data available.")
+        return
+
+    selected_pitch_type = st.selectbox(
+        "Select Pitch Type to Simulate",
+        options=available_pitch_types
+    )
+
+    # --- STEP 4: Define Plate Location Grid Parameters ---
+    st.write("#### Adjust Plate Location Grid")
+    px_min  = st.number_input("PX min", value=-2.0)
+    px_max  = st.number_input("PX max", value=2.0)
+    px_step = st.number_input("PX step", value=0.05)
+    pz_min  = st.number_input("PZ min", value=0.5)
+    pz_max  = st.number_input("PZ max", value=4.0)
+    pz_step = st.number_input("PZ step", value=0.05)
+
+    # --- STEP 5: Load the Model ---
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    rv_model_path = os.path.join(BASE_DIR, "rv_with_plateloc.joblib")
+    rv_model = joblib.load(rv_model_path)
+
+    # The model requires these features:
+    required_features = [
+        "start_speed", "spin_rate", "extension",
+        "az", "ax", "x0", "z0", "PX", "PZ"
+    ]
+
+    # --- STEP 6: Build the Prediction Grid for the Selected Pitch Type ---
+    def simulate_pitch_grid(pitch_type):
+        """
+        For the given pitch type, compute median values (from filtered_data)
+        for all required features (except PX and PZ), build a grid over PX and PZ,
+        and predict outcomes using the rv_with_plateloc model.
+        """
+        sub = filtered_data[filtered_data["Pitchtype"] == pitch_type]
+        if sub.empty:
+            return pd.DataFrame()
+
+        # Use the median values for the other features as baseline.
+        medians = sub[required_features].median(numeric_only=True).to_dict()
+
+        # Create grid arrays for PX and PZ.
+        px_values = np.arange(px_min, px_max + px_step, px_step)
+        pz_values = np.arange(pz_min, pz_max + pz_step, pz_step)
+        grid_rows = []
+        for px in px_values:
+            for pz in pz_values:
+                row = medians.copy()
+                row["PX"] = px
+                row["PZ"] = pz
+                row["Pitchtype"] = pitch_type  # For reference only.
+                grid_rows.append(row)
+        grid_df = pd.DataFrame(grid_rows)
+        
+        # Predict using the model.
+        grid_df["run_value"] = rv_model.predict(grid_df[required_features])
+        return grid_df
+
+    
+
+    result_df = simulate_pitch_grid(selected_pitch_type)
+    if result_df.empty:
+        st.write("No data available for the selected pitch type.")
+        return
+
+    # If you create a separate simulation grid (sim_df) that might not have been adjusted,
+    # flip its PX values for left-handed pitchers before plotting:
+    result_df.loc[result_df["pitcher_hand"] == "L", "PX"] *= -1
+
+    # --- STEP 7: Plot the Heatmap ---
+    fig, ax = plt.subplots(figsize=(8, 6))
+    pivot_data = result_df.pivot_table(
+        index="PZ", columns="PX", values="run_value", aggfunc="mean"
+    )
+    sns.heatmap(pivot_data, ax=ax, cmap="RdBu_r", cbar=True)
+    ax.invert_yaxis()  # So higher PZ values appear at the top.
+    ax.set_title(f"{selected_pitch_type} - Predicted Value")
+    ax.set_xlabel("PX")
+    ax.set_ylabel("PZ")
+    
+    plt.tight_layout()
+    st.pyplot(fig)
+
 
 
 # Function to calculate pitch metrics for each pitch type
@@ -776,6 +914,7 @@ pages = {
     "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
     "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
     "Polar Plots - Understanding Tilt": create_polar_plots,
+    "Ideal Pitch Locations": plot_ideal_pitch_locations,
     "Raw Data": display_raw_data
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
