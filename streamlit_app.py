@@ -703,7 +703,7 @@ def plot_ideal_pitch_locations():
     st.write("## Ideal Pitch Locations")
 
     # Compute the average 'relside' per pitcher and assign pitcher_hand
-    filtered_data["avg_relside"] = filtered_data.groupby("pitcher")["Relside"].transform("mean")
+    filtered_data["avg_relside"] = filtered_data.groupby("Pitcher")["Relside"].transform("mean")
     filtered_data["pitcher_hand"] = np.where(filtered_data["avg_relside"] < 0, "L", "R")
 
     
