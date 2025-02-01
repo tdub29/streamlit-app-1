@@ -722,9 +722,9 @@ def plot_ideal_pitch_locations():
     
     # Map plate location columns.
     if "PX" not in filtered_data.columns and "Platelocside" in filtered_data.columns:
-        filtered_data["PX"] = filtered_data["platelocside"]
+        filtered_data["PX"] = filtered_data["Platelocside"]
     if "PZ" not in filtered_data.columns and "Platelocheight" in filtered_data.columns:
-        filtered_data["PZ"] = filtered_data["platelocheight"]
+        filtered_data["PZ"] = filtered_data["Platelocheight"]
     
     # --- STEP 2: Check for Data Availability ---
     if filtered_data.empty:
