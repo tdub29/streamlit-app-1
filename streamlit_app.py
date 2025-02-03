@@ -524,7 +524,7 @@ def create_break_plot():
     ax.text(glove_side_x, -23, 'Glove Side', fontsize=12, verticalalignment='center', horizontalalignment='center',
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
 
-    if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns:
+    if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns and filtered_data['armangle_prediction'].notna().all():
         avg_horz_break = filtered_data['Horzbreak'].mean()
         avg_arm_angle = filtered_data['armangle_prediction'].mean()
     
