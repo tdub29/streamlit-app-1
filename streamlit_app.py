@@ -345,6 +345,9 @@ df['Tilt_float'] = df['Tilt'].apply(convert_tilt_to_float)
 df['Inzone'] = df.apply(
     lambda row: -0.83 <= row['Platelocside'] <= 0.83 and 1.5 <= row['Platelocheight'] <= 3.5, axis=1)
 
+df['Comploc'] = df.apply(
+    lambda row: -1.15 <= row['Platelocside'] <= 1.15 and 1.1 <= row['Platelocheight'] <= 3.9, axis=1)
+
 # Define pitch categories based on initial pitch types
 pitch_categories = {
     "Breaking Ball": ["Slider", "Curveball"],
@@ -900,6 +903,9 @@ def calculate_pitch_metrics(pitcher_data):
     
     in_zone_total = pitcher_data[pitcher_data['Inzone']].groupby('Pitchtype').size()
     in_zone_percentage = (in_zone_total / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
+
+    comp_total = pitcher_data[pitcher_data['Comploc']].groupby('Pitchtype').size()
+    comploc_percentage = (comp_total / pitch_type_counts * 100).rename('CompLoc %').fillna(0).round(1)
     
     in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Pitchcall'] == 'StrikeSwinging')].groupby('Pitchtype').size()
     in_zone_swings = pitcher_data[pitcher_data['Inzone'] & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
@@ -917,10 +923,11 @@ def calculate_pitch_metrics(pitcher_data):
                   .join(xwhiff_percentages)
                   .join(whiff_percentages)
                   .join(in_zone_percentage)
+                  .join(comploc_percentage)
                   .join(in_zone_whiff_percentages)
                   .join(chase_percentage)
                   .fillna(0))
-    metrics_df.columns = ['P', 'TJStuff+' ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %','xWhiff%', 'Whiff %', 'InZone %', 'InZone Whiff %', 'Chase %']
+    metrics_df.columns = ['P', 'TJStuff+' ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %','xWhiff%', 'Whiff %', 'InZone %', 'CompLoc%','InZone Whiff %', 'Chase %']
     return metrics_df
 
 # Function to display pitch metrics table in Streamlit
