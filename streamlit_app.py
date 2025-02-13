@@ -383,20 +383,37 @@ color_map = {
     }
 
 
-# Streamlit Sidebar Filters
+# ------------------------------------
+#  STREAMLIT SIDEBAR FILTERS (REPLACE)
+# ------------------------------------
 st.sidebar.header("Filter Options")
-# Order the pitchers in descending order
-# Filter out "Bunnell, Jack" from the pitcher list
+
+# 1) Get unique pitchers and exclude "Bunnell, Jack"
 filtered_pitchers = df['Pitcher'].unique()
 filtered_pitchers = [pitcher for pitcher in filtered_pitchers if pitcher != "Bunnell, Jack"]
 
-# Create the selectbox with the filtered pitchers
+# 2) Insert "All Pitchers" at the top (not as default selection)
+filtered_pitchers.insert(0, "All Pitchers")
+
+# 3) Selectbox for pitcher
 selected_pitcher = st.sidebar.selectbox("Select Pitcher", filtered_pitchers)
-dates_available = df[df['Pitcher'] == selected_pitcher]['Date'].unique()
+
+# 4) Determine which dates to show:
+if selected_pitcher == "All Pitchers":
+    # If "All Pitchers" selected, we show dates from the entire dataset
+    dates_available = df['Date'].unique()
+else:
+    # Otherwise, only show dates for the selected pitcher
+    dates_available = df[df['Pitcher'] == selected_pitcher]['Date'].unique()
+
+# 5) Multiselect for dates
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
-# Filter data based on selection
-filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(selected_dates))]
+# 6) Filter the main DataFrame accordingly
+if selected_pitcher == "All Pitchers":
+    filtered_data = df[df['Date'].isin(selected_dates)]
+else:
+    filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(selected_dates))]
 
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
