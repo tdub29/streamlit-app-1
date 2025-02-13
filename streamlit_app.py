@@ -884,83 +884,194 @@ def plot_ideal_pitch_locations():
 
 
 
-
-
-# Function to calculate pitch metrics for each pitch type
+# ------------------------------------------------------------------
+# 1) FUNCTION TO CALCULATE PITCH METRICS (Grouped by Pitcher,Pitchtype)
+# ------------------------------------------------------------------
 def calculate_pitch_metrics(pitcher_data):
-    pitch_type_counts = pitcher_data['Pitchtype'].value_counts().rename('Count')
-    avg_cols = ['Relspeed', 'Spinrate', 'Inducedvertbreak', 'Horzbreak',
-                'Relheight', 'Relside', 'Extension', 'Vertapprangle', 'Horzapprangle']
-    
+    """
+    Calculate pitch metrics so each row is (Pitcher, Pitchtype).
+    We keep the same logic, but replace .value_counts() with a groupby
+    on ['Pitcher','Pitchtype'].
+    """
+
+    # We now group on both Pitcher and Pitchtype, so each row in the final DF
+    # corresponds to that unique combination.
+    grouped = pitcher_data.groupby(['Pitcher', 'Pitchtype'])
+
+    # Count total pitches in each (Pitcher,Pitchtype)
+    pitch_type_counts = grouped.size().rename('Count')
+
+    # List of columns to average
+    avg_cols = [
+        'Relspeed', 'Spinrate', 'Inducedvertbreak', 'Horzbreak',
+        'Relheight', 'Relside', 'Extension', 'Vertapprangle', 'Horzapprangle'
+    ]
+
+    # If we have 'tj_stuff_plus', compute the average; otherwise create an empty Series
     if 'tj_stuff_plus' in pitcher_data.columns:
-        stuff_plus_mean = (
-            pitcher_data.groupby('Pitchtype')['tj_stuff_plus']
-                       .mean()
-                       .round(1)
-                       .rename('TJStuff+')
-        )
+        stuff_plus_mean = grouped['tj_stuff_plus'].mean().round(1).rename('TJStuff+')
     else:
-    # If the column doesn't exist, create an empty series
-        stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')   
-        
-    # Group and calculate the average for `avg_cols`
-    pitch_type_averages = pitcher_data.groupby('Pitchtype')[avg_cols].mean().round(1)
-    
-    strikes = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'])]
-    strike_percentages = (strikes.groupby('Pitchtype').size() / pitch_type_counts * 100).rename('Strike %').round(1)
-    
-    swinging_strikes = pitcher_data[pitcher_data['Pitchcall'] == 'StrikeSwinging'].groupby('Pitchtype').size()
-    total_swings = pitcher_data[pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
-    whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').fillna(0).round(1)
+        stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
 
-        # Calculate xWhiff as a percentage
-    xwhiff_percentages = (pitcher_data.groupby('Pitchtype')['xWhiff'].mean() * 100).rename('xWhiff %').fillna(0).round(1)
-    
-    max_velocity = pitcher_data.groupby('Pitchtype')['Relspeed'].max().rename('Max velo').round(1)
-    
-    in_zone_total = pitcher_data[pitcher_data['Inzone']].groupby('Pitchtype').size()
-    in_zone_percentage = (in_zone_total / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
+    # Mean of the listed columns, grouped by (Pitcher,Pitchtype)
+    pitch_type_averages = grouped[avg_cols].mean().round(1)
 
-    comp_total = pitcher_data[pitcher_data['Comploc']].groupby('Pitchtype').size()
-    comploc_percentage = (comp_total / pitch_type_counts * 100).rename('CompLoc %').fillna(0).round(1)
-    
-    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Pitchcall'] == 'StrikeSwinging')].groupby('Pitchtype').size()
-    in_zone_swings = pitcher_data[pitcher_data['Inzone'] & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
-    in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').fillna(0).round(1)
-    
-    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & pitcher_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])].groupby('Pitchtype').size()
-    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby('Pitchtype').size()
-    chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
+    # -------------------
+    # STRIKE %
+    # -------------------
+    # 1) Identify "strikes"
+    strikes = pitcher_data[pitcher_data['Pitchcall'].isin([
+        'StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'
+    ])]
+    # 2) Count them by (Pitcher,Pitchtype)
+    strikes_count = strikes.groupby(['Pitcher', 'Pitchtype']).size()
+    # 3) Compute strike percentage
+    strike_percentages = (strikes_count / pitch_type_counts * 100).rename('Strike %').round(1)
 
-    metrics_df = (pitch_type_counts.to_frame()
-                  .join(stuff_plus_mean) 
-                  .join(max_velocity)
-                  .join(pitch_type_averages)
-                  .join(strike_percentages)
-                  .join(xwhiff_percentages)
-                  .join(whiff_percentages)
-                  .join(in_zone_percentage)
-                  .join(comploc_percentage)
-                  .join(in_zone_whiff_percentages)
-                  .join(chase_percentage)
-                  .fillna(0))
-    metrics_df.columns = ['P', 'TJStuff+' ,'Max velo', 'AVG velo', 'Spinrate', 'IVB', 'HB', 'yRel', 'xRel', 'Ext.', 'VAA', 'HAA', 'Strike %','xWhiff%', 'Whiff %', 'InZone %', 'CompLoc%','InZone Whiff %', 'Chase %']
+    # -------------------
+    # WHIFF %
+    # -------------------
+    swinging_strikes = pitcher_data[pitcher_data['Pitchcall'] == 'StrikeSwinging'] \
+        .groupby(['Pitcher', 'Pitchtype']).size()
+    total_swings = pitcher_data[pitcher_data['Pitchcall'].isin([
+        'StrikeSwinging', 'FoulBall', 'InPlay'
+    ])].groupby(['Pitcher', 'Pitchtype']).size()
+
+    whiff_percentages = (
+        (swinging_strikes / total_swings) * 100
+    ).rename('Whiff %').fillna(0).round(1)
+
+    # -------------------
+    # xWHIFF %
+    # -------------------
+    if 'xWhiff' in pitcher_data.columns:
+        # Multiply by 100 to get a percentage
+        xwhiff_percentages = (
+            grouped['xWhiff'].mean() * 100
+        ).rename('xWhiff %').fillna(0).round(1)
+    else:
+        xwhiff_percentages = pd.Series(dtype=float, name='xWhiff %')
+
+    # -------------------
+    # MAX VELO
+    # -------------------
+    max_velocity = grouped['Relspeed'].max().rename('Max velo').round(1)
+
+    # -------------------
+    # INZONE %
+    # -------------------
+    in_zone_data = pitcher_data[pitcher_data['Inzone']]
+    in_zone_counts = in_zone_data.groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_percentage = (
+        in_zone_counts / pitch_type_counts * 100
+    ).rename('InZone %').fillna(0).round(1)
+
+    # -------------------
+    # COMPLOC %
+    # -------------------
+    comp_data = pitcher_data[pitcher_data['Comploc']]
+    comp_counts = comp_data.groupby(['Pitcher', 'Pitchtype']).size()
+    comploc_percentage = (
+        comp_counts / pitch_type_counts * 100
+    ).rename('CompLoc %').fillna(0).round(1)
+
+    # -----------------------
+    # INZONE WHIFF %
+    # -----------------------
+    in_zone_swinging_strikes = in_zone_data[
+        in_zone_data['Pitchcall'] == 'StrikeSwinging'
+    ].groupby(['Pitcher', 'Pitchtype']).size()
+
+    in_zone_swings = in_zone_data[
+        in_zone_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])
+    ].groupby(['Pitcher', 'Pitchtype']).size()
+
+    in_zone_whiff_percentages = (
+        (in_zone_swinging_strikes / in_zone_swings) * 100
+    ).rename('InZone Whiff %').fillna(0).round(1)
+
+    # -------------------
+    # CHASE %
+    # -------------------
+    out_zone_data = pitcher_data[~pitcher_data['Inzone']]
+    out_zone_swings = out_zone_data[
+        out_zone_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])
+    ].groupby(['Pitcher', 'Pitchtype']).size()
+
+    total_out_zone_pitches = out_zone_data.groupby(['Pitcher', 'Pitchtype']).size()
+    chase_percentage = (
+        out_zone_swings / total_out_zone_pitches * 100
+    ).rename('Chase %').fillna(0).round(1)
+
+    # -----------------------
+    # FINAL DATAFRAME JOIN
+    # -----------------------
+    metrics_df = (
+        pitch_type_counts.to_frame()
+        .join(stuff_plus_mean)
+        .join(max_velocity)
+        .join(pitch_type_averages)
+        .join(strike_percentages)
+        .join(xwhiff_percentages)
+        .join(whiff_percentages)
+        .join(in_zone_percentage)
+        .join(comploc_percentage)
+        .join(in_zone_whiff_percentages)
+        .join(chase_percentage)
+        .fillna(0)
+    )
+
+    # Rename columns for clarity
+    metrics_df.columns = [
+        'P',           # # of Pitches
+        'TJStuff+',    # Mean of tj_stuff_plus
+        'Max velo',
+        'AVG velo',
+        'Spinrate',
+        'IVB',
+        'HB',
+        'yRel',
+        'xRel',
+        'Ext.',
+        'VAA',
+        'HAA',
+        'Strike %',
+        'xWhiff%',
+        'Whiff %',
+        'InZone %',
+        'CompLoc%',
+        'InZone Whiff %',
+        'Chase %'
+    ]
+
     return metrics_df
 
-# Function to display pitch metrics table in Streamlit
+
+# ------------------------------------------------------------------
+# 2) FUNCTION TO DISPLAY PITCH METRICS IN STREAMLIT
+# ------------------------------------------------------------------
 def display_pitch_metrics():
+    """
+    Displays a table with the grouped-by (Pitcher, Pitchtype) metrics
+    for whatever subset of data is in 'filtered_data'.
+    """
     if filtered_data.empty:
         st.write("No data available for the selected filters.")
         return
-    
+
+    # Calculate the metrics on the subset data
     metrics_df = calculate_pitch_metrics(filtered_data)
-    
-    # Adjust column width by setting a max width on the dataframe
-    # Format values to avoid additional decimal places
-    styled_df = metrics_df.style.format(precision=1, na_rep="-").set_properties(**{'width': '10px'})  # Adjust width as needed
+
+    # Style the DataFrame for better readability
+    styled_df = (
+        metrics_df
+        .style
+        .format(precision=1, na_rep="-")
+        .set_properties(**{'width': '10px'})  # Adjust as needed
+    )
 
     st.write(f"### Pitch Metrics for {selected_pitcher}")
-    st.dataframe(styled_df, use_container_width=True)  # Ensures it fits the Streamlit container
+    st.dataframe(styled_df, use_container_width=True)
 
    
 
