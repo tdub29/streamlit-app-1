@@ -323,6 +323,7 @@ df["datetime"] = (
 
 df['Pitchtype'] = df['Taggedpitchtype'].replace('Undefined', np.nan).fillna(df['Autopitchtype'])
 df['Pitchtype'] = df['Pitchtype'].replace(['Four-Seam', 'FourSeamFastBall'], 'Fastball')
+df['Pitchtype'] = df['Pitchtype'].replace(['ChangeUp'], 'Changeup')
 
 df.to_csv('streamlit_2024_fall_data.csv', index=False)
 
