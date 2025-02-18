@@ -145,7 +145,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
     # Construct the path to your joblib file
-    model_path = os.path.join(BASE_DIR, "NCAA_STUFF_PLUS_24.joblib")
+    model_path = os.path.join(BASE_DIR, "NCAA_STUFF_PLUS_ALL.joblib")
     
     # Load the model
     model = joblib.load(model_path)
