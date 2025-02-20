@@ -170,8 +170,8 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     df_for_model["target"] = predictions
 
     # -- APPLY z-score & stuff-plus scaling
-    target_mean_2023 = 0.01697617582536014   
-    target_std_2023  = 0.009500746919929495
+    target_mean_2023 = 0.011532078241057906  
+    target_std_2023  = 0.009436688174599084
 
     df_for_model["target_zscore"] = (
         (df_for_model["target"] - target_mean_2023) / target_std_2023
