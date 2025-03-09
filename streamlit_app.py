@@ -279,14 +279,14 @@ def Trumedia_feature_engineering(df):
     df_joined = df_joined.dropna(subset=numeric_columns)
 
     # Determine pitcher handedness
-    df_hand = (
-        df_joined.groupby("pitcherId", as_index=False)["RelX"].mean()
-        .rename(columns={"RelX": "avg_RelX"})
-    )
-    df_hand["pitcher_hand"] = np.where(df_hand["avg_RelX"] > 0, "R", "L")
+    # df_hand = (
+    #     df_joined.groupby("pitcherId", as_index=False)["RelX"].mean()
+    #     .rename(columns={"RelX": "avg_RelX"})
+    # )
+    # df_hand["pitcher_hand"] = np.where(df_hand["avg_RelX"] > 0, "R", "L")
 
-    # Merge handedness info back
-    df_joined = pd.merge(df_joined, df_hand[["pitcherId", "pitcher_hand"]], on="pitcherId", how="left")
+    # # Merge handedness info back
+    # df_joined = pd.merge(df_joined, df_hand[["pitcherId", "pitcher_hand"]], on="pitcherId", how="left")
 
     # Rename columns to standard references
     df_joined = df_joined.rename(columns={
@@ -301,6 +301,7 @@ def Trumedia_feature_engineering(df):
     })
 
     # Mirror for left-handed pitchers
+    df_joined["pitcher_hand"] = df_joined["pitcherHand"]
     df_joined["ax"] = np.where(df_joined["pitcher_hand"] == "L", -df_joined["ax"], df_joined["ax"])
     df_joined["x0"] = np.where(df_joined["pitcher_hand"] == "L", -df_joined["x0"], df_joined["x0"])
     df_joined["is_fastball"] = df_joined["pitch_type"].isin(["FF", "FA", "SI"])
