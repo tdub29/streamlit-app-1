@@ -527,7 +527,7 @@ trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/hea
 Trumediadf = pd.read_csv(trufilepath)
 
 
-Trumediadf['Source'] = 'In-Season'
+Trumediadf['Source'] = 'InSeason'
 
 
 
