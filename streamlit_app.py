@@ -705,6 +705,8 @@ trudf_for_model = trudf_for_model.rename(columns={
 })
 trudf_for_model['Date'] = pd.to_datetime(trudf_for_model['Date']).dt.date
 trudf_for_model[['Relheight', 'Relside']] /= 12
+trudf_for_model['Batterside'] = trudf_for_model['Batterside'].map({'R': 'Right', 'L': 'Left'})
+
 
 
 # 6) If 'df' doesn't exist yet, define it as an empty DataFrame
