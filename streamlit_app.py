@@ -457,9 +457,14 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     # -- LOAD MODEL
     # Get the directory of the currently running .py file
     # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Import joblib from the local repository
+    repo_path = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the script
+    sys.path.append(repo_path)  # Ensure the repo is in the Python path
+    
+    import joblib  # Now import the local joblib
     
     # Construct the path to your joblib file
-    model_path = r"C:\Users\TrevorWhite\Downloads\NCAA_STUFF_PLUS_ALL.joblib"
+    model_path = os.path.join(repo_path, "NCAA_STUFF_PLUS_ALL.joblib")
     
     # Load the model
     model = joblib.load(model_path)
@@ -496,8 +501,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         100 - (df_for_model["target_zscore"] * 10)
     )
 
-    whiff_model_path = r"C:\Users\TrevorWhite\Downloads\whiff_model_grouped_training.joblib"
-    whiff_model = joblib.load(whiff_model_path)
+    whiff_model = joblib.load("whiff_model_grouped_training.joblib")
 
     # --- PREDICT WHIFF (xWhiff) ---
     df_for_model["xWhiff"] = whiff_model.predict(df_for_model[features])
@@ -650,7 +654,7 @@ if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
 import pandas as pd
 
 # 1) Load CSV file
-trumedia_df = pd.read_csv(r"C:\Users\TrevorWhite\Downloads\trumediatotrackmannamejoin.csv")
+trumedia_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/trumediatotrackmannamejoin.csv")
 
 # 2) Rename pitcherAbbrevName to pitcherabbrevname in 'trumedia_df'
 trumedia_df.rename(columns={"pitcherAbbrevName": "pitcherabbrevname"}, inplace=True)
