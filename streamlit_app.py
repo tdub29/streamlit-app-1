@@ -701,6 +701,8 @@ trudf_for_model = trudf_for_model.rename(columns={
     "Xwhiff": "xWhiff"
 
 })
+trudf_for_model['Date'] = pd.to_datetime(trudf_for_model['Date']).dt.date
+
 
 # 6) If 'df' doesn't exist yet, define it as an empty DataFrame
 if 'df' not in globals():
