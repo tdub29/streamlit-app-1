@@ -815,7 +815,9 @@ color_map = {
         'Sinker': '#8c564b',    # Brown
         'Splitter': '#e377c2',  # Pink
         'Knuckleball': '#7f7f7f', # Gray
-        'Other': '#7f7f7f' # Gray
+        'Other': '#7f7f7f', # Gray
+        'Undefined': '#7f7f7f',
+        'FourSeamFastBall': '#1f77b4'
     }
 
 # ------------------------------------
