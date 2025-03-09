@@ -182,7 +182,7 @@ def Trumedia_feature_engineering(df):
     # 10. Convert Numeric Columns
     # -------------------------------
     numeric_cols = ["Vel", "delta_run_exp", "Extension", "HorzApprAngle", "VertApprAngle", 
-                    "IndVertBrk", "HorzBrk", "RelZ", "RelX"]
+                    "IndVertBrk", "HorzBrk", "RelZ", "RelX","HorzRelAngle", "VertRelAngle"]
     for col in numeric_cols:
         df_joined[col] = pd.to_numeric(df_joined[col], errors='coerce')
 
