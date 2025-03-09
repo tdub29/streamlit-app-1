@@ -1356,6 +1356,10 @@ def calculate_pitch_metrics(pitcher_data):
     # Mean of the listed columns, grouped by (Pitcher,Pitchtype)
     pitch_type_averages = grouped[avg_cols].mean().round(1)
 
+    # Ensure the relevant columns are Boolean
+    for col in ['Whiff', 'Swing', 'Strike', 'Inzone']:
+        pitcher_data[col] = pitcher_data[col].astype(bool)
+
     # -------------------
     # STRIKE %
     # -------------------
