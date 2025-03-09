@@ -876,7 +876,7 @@ def plot_pitch_locations():
             data=side_data, 
             x='Platelocside', 
             y='Platelocheight', 
-            hue='Pitchtype',
+            hue='Taggedpitchtype',
             palette=color_map, 
             s=100, 
             edgecolor='black', 
