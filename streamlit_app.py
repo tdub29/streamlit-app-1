@@ -26,6 +26,320 @@ except ImportError:
 
 import sklearn
 
+def Trumedia_feature_engineering(df):
+    import pandas as pd
+    import numpy as np
+
+    # -------------------------------
+    # 1. Define pitch mapping
+    # -------------------------------
+    pitch_mapping = {
+        'FA': 'Fast',
+        'CU': 'Break',
+        'CH': 'Slow',
+        'SL': 'Break',
+        'SI': 'Fast',
+        'FC': 'Fast',
+        'UN': None,  # filter out
+        'IN': None,  # filter out
+        'FF': 'Fast',
+        'FS': 'Slow',
+        'KN': 'Slow'
+    }
+
+    # Filter out rows where pitchType maps to None
+    df = df[df['pitchType'].isin([pt for pt, group in pitch_mapping.items() if group is not None])].copy()
+    # Map pitch types to a new column 'pitchgroup'
+    df['pitchgroup'] = df['pitchType'].map(pitch_mapping)
+
+    df['Autopitchtype'] =  df['Taggedpitchtype']
+
+    # -------------------------------
+    # 2. Categorize the pitchResult
+    # -------------------------------
+    def categorize_event(event):
+        """
+        Categorize the pitchResult into a standardized event label.
+        Bunt events are ignored (return None).
+        """
+        event = event.lower()
+        if "bunt" in event or "unknown" in event:
+            return None
+        elif "single" in event:
+            return "single"
+        elif "double play" in event:
+            return "field_out"
+        elif "double" in event:
+            return "double"
+        elif "triple" in event:
+            return "triple"
+        elif "home run" in event:
+            return "home_run"
+        elif "looking" in event:
+            return "called_strike"
+        elif "swinging" in event:
+            return "swinging_strike"
+        elif "hit by pitch" in event:
+            return "hit_by_pitch"
+        elif "walk" in event or "ball" in event:
+            return "ball"
+        elif "foul" in event:
+            return "foul"
+        elif ("line out" in event or "fly out" in event or "ground out" in event or
+              "pop out" in event or "double play" in event or "reached on error" in event or
+              "in play out" in event or "sac fly" in event or "fielder's choice" in event):
+            return "field_out"
+        elif "ball in the dirt" in event:
+            return "ball"
+        else:
+            return "unknown"
+
+    df['event_category'] = df['pitchResult'].apply(categorize_event)
+    # Drop rows where event_category is None or unknown
+    df = df[(df['event_category'].notna()) & (df['event_category'] != 'unknown')].copy()
+
+    # -------------------------------
+    # 3. Split 'count' into balls and strikes
+    # -------------------------------
+    df[['balls', 'strikes']] = df['count'].str.split('-', expand=True)
+    df['balls'] = pd.to_numeric(df['balls'], errors='coerce')
+    df['strikes'] = pd.to_numeric(df['strikes'], errors='coerce')
+
+    # -------------------------------
+    # 4. Merge with run_values
+    # -------------------------------
+    run_values = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/run_values.csv")
+    run_values = run_values.rename(columns={"event": "event_category"})
+    df_joined = pd.merge(
+        df,
+        run_values,
+        on=["balls", "strikes", "event_category"],
+        how="left"
+    )
+
+
+
+    # -------------------------------
+    # 5. Create Binary 'win' Column
+    # -------------------------------
+    win_events = {'foul', 'called_strike', 'swinging_strike', 'field_out', 'strikeout'}
+    df_joined['win'] = df_joined['event_category'].apply(lambda x: 1 if x in win_events else 0)
+
+    # -------------------------------
+    # 6. Adjust PX Orientation
+    # -------------------------------
+    df_joined['PX'] = df_joined['PX'] * -1
+
+    # -------------------------------
+    # 7. Create Binary Count Categories
+    # -------------------------------
+    df_joined['count_0_0'] = ((df_joined['balls'] == 0) & (df_joined['strikes'] == 0)).astype(int)
+    df_joined['count_hitters'] = df_joined[['balls', 'strikes']].apply(
+        lambda x: 1 if (x['balls'], x['strikes']) in [(1,0), (2,0), (3,0), (3,1)] else 0, axis=1
+    )
+    df_joined['count_pitchers'] = df_joined[['balls', 'strikes']].apply(
+        lambda x: 1 if (x['balls'], x['strikes']) in [(0,2), (0,1), (1,2)] else 0, axis=1
+    )
+    df_joined['count_2k'] = ((df_joined['strikes'] == 2) & (df_joined['balls'] != 3)).astype(int)
+
+    # -------------------------------
+    # 8. Additional Binary Features
+    # -------------------------------
+    # 8.1 Strike
+    strike_events = {"foul", "called_strike", "swinging_strike", "field_out", "strikeout",
+                     "home_run", "triple", "double", "single"}
+    df_joined['Strike'] = df_joined['event_category'].isin(strike_events)
+
+    # # 8.2 Comploc
+    # df_joined['Comploc'] = df_joined.apply(
+    #     lambda row: -1.15 <= row['PX'] <= 1.15 and 1.1 <= row['PZ'] <= 3.9, axis=1
+    # )
+
+    # # 8.3 Inzone
+    # df_joined['Inzone'] = df_joined.apply(
+    #     lambda row: -0.83 <= row['PX'] <= 0.83 and 1.5 <= row['PZ'] <= 3.5, axis=1
+    # )
+
+    # 8.4 Swing
+    swing_events = {"foul", "swinging_strike", "field_out", "home_run", "triple", "double", "single"}
+    df_joined['Swing'] = df_joined['event_category'].isin(swing_events)
+
+    # 8.5 Whiff
+    df_joined['Whiff'] = df_joined['pitchResult'].str.lower().str.contains("swinging", na=False).astype(int)
+
+    # -------------------------------
+    # 9. Create delta_run_exp_squared
+    # -------------------------------
+    df_joined['delta_run_exp_squared'] = df_joined['delta_run_exp'].apply(lambda x:
+        0.5 + (x - 0.5) * 0.5 if x > 0.5 else
+        -0.5 + (x + 0.5) * 0.5 if x < -0.5 else
+        0.2 + (x - 0.2) * 0.75 if x > 0.2 else
+        -0.2 + (x + 0.2) * 0.75 if x < -0.2 else
+        x * 2.5
+    )
+
+    # -------------------------------
+    # 10. Convert Numeric Columns
+    # -------------------------------
+    numeric_cols = ["Vel", "delta_run_exp", "Extension", "HorzApprAngle", "VertApprAngle", 
+                    "IndVertBrk", "HorzBrk", "RelZ", "RelX"]
+    for col in numeric_cols:
+        df_joined[col] = pd.to_numeric(df_joined[col], errors='coerce')
+
+    # -------------------------------
+    # 11. Calculate Runs Scored
+    # -------------------------------
+    df_joined['Runs Scored'] = np.maximum(
+        0,
+        np.maximum(
+            df_joined['opponentCurrentRuns'].shift(-1) - df_joined['opponentCurrentRuns'],
+            df_joined['currentRuns'].shift(-1) - df_joined['currentRuns'].fillna(0)
+        )
+    )
+
+    # -------------------------------
+    # 12. Convert gameDate to datetime
+    # -------------------------------
+    df_joined['gameDate'] = pd.to_datetime(df_joined['gameDate'])
+
+    # -------------------------------
+    # 13. Clean pitchResult, abbreviate
+    # -------------------------------
+    df_joined['clean_pitchResult'] = df_joined['pitchResult'].str.split(' on a').str[0].str.strip()
+    event_abbreviations = {
+        "Single": "1B",
+        "Foul": "Foul",
+        "Hit By Pitch": "HBP",
+        "Strike Swinging": "SS",
+        "Strikeout (Swinging)": "K",   # forward K for swinging
+        "Strikeout (Looking)": "ꓘ",   # backward K for looking
+        "Ball": "B",
+        "Walk": "BB",
+        "Home Run": "HR",
+        "Double": "2B",
+        "Fielder's Choice": "FC",
+        "Triple": "3B",
+        "Reached on Error": "ROE",
+        "Sac Fly": "SF"
+    }
+    df_joined['clean_pitchResult'] = df_joined['clean_pitchResult'].map(event_abbreviations).fillna(df_joined['clean_pitchResult'])
+
+    # -------------------------------
+    # 14. Create Event_Desc
+    # -------------------------------
+    df_joined['Event_Desc'] = df_joined.apply(lambda row: (
+        f"{row['balls']}-{row['strikes']} "
+        f"{row['pitchTypeFull']}, "
+        + (f"{int(row['Runs Scored'])} Run " if row['Runs Scored'] > 0 else '')
+        + f"{row['clean_pitchResult']}, "
+        + (
+            "Bases Empty"
+            if not (row['ManOn1st'] == 1 or row['ManOn2nd'] == 1 or row['ManOn3rd'] == 1)
+            else "Runners on "
+                 + " ".join(filter(None, [
+                     "1st" if row['ManOn1st'] == 1 else '',
+                     "2nd" if row['ManOn2nd'] == 1 else '',
+                     "3rd" if row['ManOn3rd'] == 1 else ''
+                 ]))
+        )
+        + f", {row['inn']} "
+        f'{row["outs"]} Out'
+    ), axis=1)
+
+    # -------------------------------
+    # 15. Mark Leadoff Batters
+    # -------------------------------
+    valid_leadoff_events = {"single", "double", "triple", "home_run", "walk", "hit_by_pitch"}
+
+    # Step 1: Identify leadoff batters
+    df_joined["inning_leadoff"] = df_joined.groupby(["gameDate", "inn"])["abNumInGame"].transform("min") == df_joined["abNumInGame"]
+
+    # Step 2: Identify successful leadoff batters
+    df_joined["inning_leadoff"] = df_joined["inning_leadoff"] & df_joined["event_category"].isin(valid_leadoff_events)
+
+    # Step 3: If a leadoff batter succeeded in an inning, mark success for all rows in that inning
+    df_joined["inning_leadoff_success"] = df_joined.groupby(["gameDate", "inn"])["inning_leadoff"].transform("max")
+
+    # Convert True/False → 1/0
+    df_joined["inning_leadoff"] = df_joined["inning_leadoff"].astype(int)
+    df_joined["inning_leadoff_success"] = df_joined["inning_leadoff_success"].astype(int)
+
+    df_joined['Taggedpitchtype'] = df_joined['pitchTypeFull']
+    df_joined['Autopitchtype'] = df_joined['pitchTypeFull']
+
+    # print("Feature engineering complete. Here's a preview:")
+    # print(df_joined.head())
+    # Ensure relevant columns are numeric
+    numeric_columns = ["RelX", "HorzBrk", "IndVertBrk", "Vel"]
+    for col in numeric_columns:
+        if col in df_joined.columns:
+            df_joined[col] = pd.to_numeric(df_joined[col], errors="coerce")
+
+    # Drop rows with NaN in critical columns to avoid aggregation errors
+    df_joined = df_joined.dropna(subset=numeric_columns)
+
+    # Determine pitcher handedness
+    df_hand = (
+        df_joined.groupby("pitcherId", as_index=False)["RelX"].mean()
+        .rename(columns={"RelX": "avg_RelX"})
+    )
+    df_hand["pitcher_hand"] = np.where(df_hand["avg_RelX"] > 0, "R", "L")
+
+    # Merge handedness info back
+    df_joined = pd.merge(df_joined, df_hand[["pitcherId", "pitcher_hand"]], on="pitcherId", how="left")
+
+    # Rename columns to standard references
+    df_joined = df_joined.rename(columns={
+        "Vel": "start_speed",
+        "Spin": "spin_rate",
+        "Extension": "extension",
+        "RelZ": "z0",           # Release height
+        "RelX": "x0",           # Release side
+        "HorzBrk": "ax",        # Horizontal break
+        "IndVertBrk": "az",     # Vertical break
+        "PitchType": "pitch_type"
+    })
+
+    # Mirror for left-handed pitchers
+    df_joined["ax"] = np.where(df_joined["pitcher_hand"] == "L", -df_joined["ax"], df_joined["ax"])
+    df_joined["x0"] = np.where(df_joined["pitcher_hand"] == "L", -df_joined["x0"], df_joined["x0"])
+    df_joined["is_fastball"] = df_joined["pitch_type"].isin(["FF", "FA", "SI"])
+    # Most-used fastball logic
+    fastball_types = ["FF", "SI", "FA"]
+    df_joined["is_fastball"] = df_joined["pitch_type"].isin(["FF", "FA", "SI"])
+    df_fb = df_joined[df_joined["pitch_type"].isin(fastball_types)].copy()
+
+    # Group by (pitcherId, pitch_type), compute means & usage count
+    df_agg = (
+        df_fb.groupby(["pitcherId", "pitch_type"], as_index=False)
+        .agg(
+            avg_fastball_speed=("start_speed", "mean"),
+            avg_fastball_az=("az", "mean"),
+            avg_fastball_ax=("ax", "mean"),
+            count=("start_speed", "count")
+        )
+    )
+
+    # Sort by usage count, then avg_fastball_speed, descending
+    df_agg = df_agg.sort_values(["count", "avg_fastball_speed"], ascending=[False, False])
+
+    # Keep only the top row (most-used & fastest) per pitcherId
+    df_agg = df_agg.drop_duplicates(subset=["pitcherId"], keep="first")
+
+    # Merge back & compute diffs
+    df_joined = pd.merge(
+        df_joined,
+        df_agg[["pitcherId", "avg_fastball_speed", "avg_fastball_az", "avg_fastball_ax"]],
+        on="pitcherId",
+        how="left"
+    )
+
+    df_joined["speed_diff"] = df_joined["start_speed"] - df_joined["avg_fastball_speed"]
+    df_joined["az_diff"] = df_joined["az"] - df_joined["avg_fastball_az"]
+    df_joined["ax_diff"] = df_joined["ax"] - df_joined["avg_fastball_ax"]
+
+    return df_joined
+
 #############################################
 # 1) DEFINE HELPER FUNCTIONS
 #############################################
@@ -142,10 +456,10 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
 
     # -- LOAD MODEL
     # Get the directory of the currently running .py file
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     
     # Construct the path to your joblib file
-    model_path = os.path.join(BASE_DIR, "NCAA_STUFF_PLUS_ALL.joblib")
+    model_path = r"C:\Users\TrevorWhite\Downloads\NCAA_STUFF_PLUS_ALL.joblib"
     
     # Load the model
     model = joblib.load(model_path)
@@ -165,13 +479,15 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         "is_fastball"
     ]
 
+    df_for_model[features] = df_for_model[features].apply(pd.to_numeric, errors='coerce')
+
     # -- MAKE PREDICTIONS
     predictions = model.predict(df_for_model[features])
     df_for_model["target"] = predictions
 
     # -- APPLY z-score & stuff-plus scaling
-    target_mean_2023 = 0.011532078241057906  
-    target_std_2023  = 0.009436688174599084
+    target_mean_2023 = 0.011532333993710725
+    target_std_2023  = 0.009399038486978739
 
     df_for_model["target_zscore"] = (
         (df_for_model["target"] - target_mean_2023) / target_std_2023
@@ -180,7 +496,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         100 - (df_for_model["target_zscore"] * 10)
     )
 
-    whiff_model_path = os.path.join(BASE_DIR, "whiff_model_grouped_training.joblib")
+    whiff_model_path = r"C:\Users\TrevorWhite\Downloads\whiff_model_grouped_training.joblib"
     whiff_model = joblib.load(whiff_model_path)
 
     # --- PREDICT WHIFF (xWhiff) ---
@@ -193,79 +509,102 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
 file_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
 df = pd.read_csv(file_path)
 
+
+df['Source'] = 'Preseason'
+
 df.drop_duplicates(subset=['PitchUID'], inplace=True)
 
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
-player_overall_avg_relheight = (
-    df.groupby('Pitcher')['Relheight']
-    .mean()
-    .reset_index()
-    .rename(columns={'Relheight': 'player_overall_avg_relheight'})
-)
+trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
 
-# -------------------------------
-# 3. Calculate Each Player's Average Relheight per Date (Excluding "Bunnell" and "Jack")
-# -------------------------------
-# Define pitchers to exclude
-excluded_pitchers = ["Bunnell, Jack"]
+Trumediadf = pd.read_csv(trufilepath)
 
-# Filter out excluded pitchers
-df_non_excluded = df[~df['Pitcher'].isin(excluded_pitchers)].copy()
 
-# Calculate average Relheight per player per date
-player_date_avg_relheight = (
-    df_non_excluded.groupby(['Pitcher', 'Date'])['Relheight']
-    .mean()
-    .reset_index()
-    .rename(columns={'Relheight': 'player_date_avg_relheight'})
-)
+Trumediadf['Source'] = 'Trumedia'
 
-# -------------------------------
-# 4. Compute Difference Between Overall and Daily Averages
-# -------------------------------
-# Merge overall averages with daily averages
-player_diff = pd.merge(
-    player_date_avg_relheight,
-    player_overall_avg_relheight,
-    on='Pitcher',
-    how='left'
-)
 
-# Calculate the difference
-player_diff['diff_relheight'] = player_diff['player_overall_avg_relheight'] - player_diff['player_date_avg_relheight']
 
-# -------------------------------
-# 5. Calculate Average Difference per Date
-# -------------------------------
-avg_diff_per_date = (
-    player_diff.groupby('Date')['diff_relheight']
-    .mean()
-    .reset_index()
-    .rename(columns={'diff_relheight': 'avg_diff_relheight'})
-)
 
-# -------------------------------
-# 6. Merge Average Difference Back to Main DataFrame
-# -------------------------------
-df = pd.merge(df, avg_diff_per_date, on='Date', how='left')
+def process_relheight(df):
+    # Define pitchers to exclude
+    excluded_pitchers = ["Bunnell, Jack"]
+    
+    # Compute overall average Relheight per player
+    player_overall_avg_relheight = (
+        df.groupby('Pitcher')['Relheight']
+        .mean()
+        .reset_index()
+        .rename(columns={'Relheight': 'player_overall_avg_relheight'})
+    )
+    
+    # Filter out excluded pitchers
+    df_non_excluded = df[~df['Pitcher'].isin(excluded_pitchers)].copy()
+    
+    # Compute average Relheight per player per date
+    player_date_avg_relheight = (
+        df_non_excluded.groupby(['Pitcher', 'Date'])['Relheight']
+        .mean()
+        .reset_index()
+        .rename(columns={'Relheight': 'player_date_avg_relheight'})
+    )
+    
+    # Merge overall and daily averages
+    player_diff = pd.merge(
+        player_date_avg_relheight, player_overall_avg_relheight, on='Pitcher', how='left'
+    )
+    
+    # Compute the difference
+    player_diff['diff_relheight'] = (
+        player_diff['player_overall_avg_relheight'] - player_diff['player_date_avg_relheight']
+    )
+    
+    # Compute average difference per date
+    avg_diff_per_date = (
+        player_diff.groupby('Date')['diff_relheight']
+        .mean()
+        .reset_index()
+        .rename(columns={'diff_relheight': 'avg_diff_relheight'})
+    )
+    
+    # Merge average difference back to main DataFrame
+    df = pd.merge(df, avg_diff_per_date, on='Date', how='left')
+    
+    # Rename original 'Relheight' and create scaled 'Relheight'
+    df.rename(columns={'Relheight': 'relheight_uncleaned'}, inplace=True)
+    df['avg_diff_relheight'] = df['avg_diff_relheight'].fillna(0)
+    df['Relheight'] = df['relheight_uncleaned'] + df['avg_diff_relheight']
+    
+    # Handle missing values
+    df['Relheight'] = df['Relheight'].fillna(df['relheight_uncleaned'])
+    
+    return df
 
-# -------------------------------
-# 7. Rename Original 'Relheight' and Create Scaled 'relheight'
-# -------------------------------
-# Rename the original 'Relheight' to 'relheight_uncleaned'
-df.rename(columns={'Relheight': 'relheight_uncleaned'}, inplace=True)
+# Apply transformation only if Source is 'Trumedia'
+if 'Source' in df.columns and (df['Source'] == 'Preseason').any():
+    # Process Relheight
+    df = process_relheight(df)
+    
+    # Create 'Swing' column based on Exitspeed and Pitchcall
+    df['Swing'] = np.where(
+        (df['Exitspeed'] > 0) | (df['Pitchcall'].str.contains('Swing|Foul', case=False, na=False)),
+        'Swing',
+        'Take'
+    )
 
-df['avg_diff_relheight'] = df['avg_diff_relheight'].fillna(0)
+    # Create 'Contact' column based on Exitspeed
+    df['Contact'] = np.where(df['Exitspeed'] > 0, 'Yes', 'No')
 
-# Create the new scaled 'relheight' by subtracting the average difference
-df['Relheight'] = df['relheight_uncleaned'] + df['avg_diff_relheight']
+    # Create 'Whiff' column
+    df['Whiff'] = np.where(
+        (df['Swing'] == 'Swing') & (df['Contact'] == 'No'),
+        1,  # Mark as 1 if both conditions are met
+        0    # Otherwise, mark as 0
+    ).astype(int)
 
-# -------------------------------
-# 8. Handle Missing Values (Optional)
-
-df['Relheight'] = df['Relheight'].fillna(df['relheight_uncleaned'])
+    # Create 'Count' column combining Balls and Strikes
+    df['Count'] = df['Balls'].astype(str) + '-' + df['Strikes'].astype(str)
 
 
 df_for_model = df.copy()
@@ -273,6 +612,10 @@ df_for_model = df.copy()
 # Rename columns to lowercase for the feature_engineering function
 df_for_model.columns = [c.lower() for c in df_for_model.columns]
 
+trudf_for_model = Trumediadf.copy()
+
+trudf_for_model['Taggedpitchtype'] = trudf_for_model['pitchTypeFull']
+trudf_for_model['Autopitchtype'] = trudf_for_model['pitchTypeFull']
 
 
 # Ensure the columns needed by feature_engineering exist
@@ -285,10 +628,12 @@ df_for_model = feature_engineering(df_for_model)
 # 2) RUN MODEL + SCALING
 df_for_model = run_model_and_scale(df_for_model)
 
-# OPTIONAL: Merge the new columns (target, tj_stuff_plus) back into the original "df"
-# so that you can reference them in your existing plots/tables if desired.
-# We'll merge on a unique identifier you have (e.g., Pitchuid), if it exists in both.
-# For demonstration, let's assume "pitchuid" (lowercase in df_for_model).
+trudf_for_model = Trumedia_feature_engineering(trudf_for_model)
+
+trudf_for_model.columns = [c.lower() for c in trudf_for_model.columns]
+
+trudf_for_model = run_model_and_scale(trudf_for_model)
+
 if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
     # We select only the new columns from df_for_model we want to bring back
     merged_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus", "xWhiff"]
@@ -300,6 +645,80 @@ if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
     )
     # You might drop the duplicate "pitchuid" column from df
     df.drop(columns=["pitchuid"], inplace=True, errors="ignore")
+
+
+import pandas as pd
+
+# 1) Load CSV file
+trumedia_df = pd.read_csv(r"C:\Users\TrevorWhite\Downloads\trumediatotrackmannamejoin.csv")
+
+# 2) Rename pitcherAbbrevName to pitcherabbrevname in 'trumedia_df'
+trumedia_df.rename(columns={"pitcherAbbrevName": "pitcherabbrevname"}, inplace=True)
+
+# 3) Drop 'Pitcher' from 'trudf_for_model' if it already exists
+if "pitcher" in trudf_for_model.columns:
+    trudf_for_model.drop(columns=["pitcher"], inplace=True)
+
+
+trudf_for_model['Pitcherthrows'] = trudf_for_model['pitcher_hand'].apply(lambda x: 'Left' if x == 'L' else 'Right')
+
+# 4) Merge 'trudf_for_model' with 'trumedia_df' to pull in the 'Pitcher' column
+trudf_for_model = trudf_for_model.merge(
+    trumedia_df[['pitcherabbrevname', 'Pitcher']], 
+    on='pitcherabbrevname', 
+    how='left'
+)
+trudf_for_model.columns = [col.strip().capitalize() for col in trudf_for_model.columns]
+# 5) Rename columns in 'trudf_for_model'
+trudf_for_model = trudf_for_model.rename(columns={
+    "Start_speed": "Relspeed",
+    "Spin_rate": "Spinrate",
+    "extension": "Extension",
+    "Z0": "Relheight",         # Release height
+    "X0": "Relside",           # Release side
+    "Ax": "Horzbreak",         # Horizontal break
+    "Az": "Inducedvertbreak",  # Vertical break
+    "pitchTypeFull": "Taggedpitchtype",
+    "horzapprangle": "Horzapprangle",
+    "vertapprangle": "Vertapprangle",
+    "horzrelangle": "Horzrelangle",
+    "vertrelangle": "Vertrelangle",
+    "uniqPitchId": "pitchuid",
+    "Pz": "Platelocheight",
+    "Px": "Platelocside",
+    "Batterhand": "Batterside",
+    "Spindir": "Spinaxis",
+    "balls": "Balls",
+    "strikes": "Strikes",
+    "Tj_stuff_plus": "tj_stuff_plus",
+    "Launchang": "Angle",
+    "Exitdir": "Direction",
+    "Exitvelocity": "Exitspeed",
+    "Xwhiff": "xWhiff"
+
+})
+
+# 6) If 'df' doesn't exist yet, define it as an empty DataFrame
+if 'df' not in globals():
+    df = pd.DataFrame()
+
+# 7) Remove any duplicate columns in both DataFrames
+df = df.loc[:, ~df.columns.duplicated()].copy()
+trudf_for_model = trudf_for_model.loc[:, ~trudf_for_model.columns.duplicated()].copy()
+
+# 8) Concatenate the two DataFrames
+df = pd.concat([df, trudf_for_model], ignore_index=True, sort=False)
+
+# 'df' now contains the appended data with the updated 'Pitcher' column
+
+
+
+
+# OPTIONAL: Merge the new columns (target, tj_stuff_plus) back into the original "df"
+# so that you can reference them in your existing plots/tables if desired.
+# We'll merge on a unique identifier you have (e.g., Pitchuid), if it exists in both.
+# For demonstration, let's assume "pitchuid" (lowercase in df_for_model).
+
     
 # Load arm angle CSV
 armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
@@ -308,24 +727,24 @@ armangle_df = pd.read_csv(armangle_path)
 # Merge arm angle data into df on 'Pitcher'
 df = df.merge(armangle_df[['Pitcher', 'armangle_prediction']], on='Pitcher', how='left')
 
-df.dropna(subset=['Date'], inplace=True)
-df["datetime"] = pd.to_datetime(df["Date"], errors="coerce")
-df["Pitchno"] = pd.to_numeric(df["Pitchno"], errors="coerce")
+# df.dropna(subset=['Date'], inplace=True)
+# df["datetime"] = pd.to_datetime(df["Date"], errors="coerce")
+# df["Pitchno"] = pd.to_numeric(df["Pitchno"], errors="coerce")
 
-# 2) Add 12 hours (to shift from midnight to noon) 
-#    plus the minutes indicated by 'Time'
-df["datetime"] = (
-    df["datetime"]
-    + pd.to_timedelta(12, unit="h")         # shift to noon
-    + pd.to_timedelta(df["Pitchno"], unit="m")  # add the minutes from noon
-)
+# # 2) Add 12 hours (to shift from midnight to noon) 
+# #    plus the minutes indicated by 'Time'
+# df["datetime"] = (
+#     df["datetime"]
+#     + pd.to_timedelta(12, unit="h")         # shift to noon
+#     + pd.to_timedelta(df["Pitchno"], unit="m")  # add the minutes from noon
+# )
 
 
 df['Pitchtype'] = df['Taggedpitchtype'].replace('Undefined', np.nan).fillna(df['Autopitchtype'])
 df['Pitchtype'] = df['Pitchtype'].replace(['Four-Seam', 'FourSeamFastBall'], 'Fastball')
 df['Pitchtype'] = df['Pitchtype'].replace(['ChangeUp'], 'Changeup')
 
-df.to_csv('streamlit_2024_fall_data.csv', index=False)
+# df.to_csv('streamlit_2024_fall_data.csv', index=False)
 
 
 # Convert 'Tilt' column from HH:MM format to float (1:45 -> 1.75)
@@ -341,6 +760,10 @@ def convert_tilt_to_float(tilt_value):
 
 # Apply Tilt conversion
 df['Tilt_float'] = df['Tilt'].apply(convert_tilt_to_float)
+
+
+
+
 
 # Identify in-zone pitches based on PlateLocSide and PlateLocHeight
 df['Inzone'] = df.apply(
@@ -383,7 +806,6 @@ color_map = {
         'Other': '#7f7f7f' # Gray
     }
 
-
 # ------------------------------------
 #  STREAMLIT SIDEBAR FILTERS (REPLACE)
 # ------------------------------------
@@ -410,11 +832,14 @@ else:
 # 5) Multiselect for dates
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
-# 6) Filter the main DataFrame accordingly
-if selected_pitcher == "All Pitchers":
-    filtered_data = df[df['Date'].isin(selected_dates)]
-else:
-    filtered_data = df[(df['Pitcher'] == selected_pitcher) & (df['Date'].isin(selected_dates))]
+# 6) Get unique sources and add filter
+sources_available = df['Source'].unique()
+selected_sources = st.sidebar.multiselect("Select Sources", sources_available, default=sources_available)
+
+# 7) Filter the main DataFrame accordingly
+filtered_data = df[df['Date'].isin(selected_dates) & df['Source'].isin(selected_sources)]
+if selected_pitcher != "All Pitchers":
+    filtered_data = filtered_data[filtered_data['Pitcher'] == selected_pitcher]
 
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
