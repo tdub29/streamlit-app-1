@@ -638,6 +638,8 @@ trudf_for_model.columns = [c.lower() for c in trudf_for_model.columns]
 
 trudf_for_model = run_model_and_scale(trudf_for_model)
 
+
+
 if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
     # We select only the new columns from df_for_model we want to bring back
     merged_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus", "xWhiff"]
@@ -702,6 +704,7 @@ trudf_for_model = trudf_for_model.rename(columns={
 
 })
 trudf_for_model['Date'] = pd.to_datetime(trudf_for_model['Date']).dt.date
+trudf_for_model[['Relheight', 'Relside']] /= 12
 
 
 # 6) If 'df' doesn't exist yet, define it as an empty DataFrame
