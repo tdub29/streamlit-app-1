@@ -1360,27 +1360,43 @@ def calculate_pitch_metrics(pitcher_data):
     # STRIKE %
     # -------------------
     # 1) Identify "strikes"
-    strikes = pitcher_data[pitcher_data['Pitchcall'].isin([
-        'StrikeCalled', 'StrikeSwinging', 'FoulBall', 'InPlay'
-    ])]
-    # 2) Count them by (Pitcher,Pitchtype)
+    # Identify strikes using the 'Strike' column
+    strikes = pitcher_data[pitcher_data['Strike']]
+    # Count strikes by (Pitcher, Pitchtype)
     strikes_count = strikes.groupby(['Pitcher', 'Pitchtype']).size()
-    # 3) Compute strike percentage
+    # Compute strike percentage
     strike_percentages = (strikes_count / pitch_type_counts * 100).rename('Strike %').round(1)
 
     # -------------------
     # WHIFF %
     # -------------------
-    swinging_strikes = pitcher_data[pitcher_data['Pitchcall'] == 'StrikeSwinging'] \
-        .groupby(['Pitcher', 'Pitchtype']).size()
-    total_swings = pitcher_data[pitcher_data['Pitchcall'].isin([
-        'StrikeSwinging', 'FoulBall', 'InPlay'
-    ])].groupby(['Pitcher', 'Pitchtype']).size()
-
-    whiff_percentages = (
-        (swinging_strikes / total_swings) * 100
-    ).rename('Whiff %').fillna(0).round(1)
-
+    # Compute whiff percentage as: (Number of whiffs) / (Number of swings) * 100
+    swinging_strikes = pitcher_data[pitcher_data['Whiff']].groupby(['Pitcher', 'Pitchtype']).size()
+    total_swings = pitcher_data[pitcher_data['Swing']].groupby(['Pitcher', 'Pitchtype']).size()
+    whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').fillna(0).round(1)
+    
+    # -------------------
+    # INZONE %
+    # -------------------
+    # Compute in-zone percentage as: (Number of in-zone pitches) / (Total pitches) * 100
+    in_zone_counts = pitcher_data[pitcher_data['Inzone']].groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_percentage = (in_zone_counts / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
+    
+    # -------------------
+    # INZONE WHIFF %
+    # -------------------
+    # Compute in-zone whiff percentage as: (Number of whiffs in-zone) / (Number of swings in-zone) * 100
+    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Whiff'])].groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_swings = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').fillna(0).round(1)
+    
+    # -------------------
+    # CHASE %
+    # -------------------
+    # Here we define 'Chase %' as the percentage of out-of-zone swings.
+    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcher', 'Pitchtype']).size()
+    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby(['Pitcher', 'Pitchtype']).size()
+    chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
     # -------------------
     # xWHIFF %
     # -------------------
@@ -1397,15 +1413,7 @@ def calculate_pitch_metrics(pitcher_data):
     # -------------------
     max_velocity = grouped['Relspeed'].max().rename('Max velo').round(1)
 
-    # -------------------
-    # INZONE %
-    # -------------------
-    in_zone_data = pitcher_data[pitcher_data['Inzone']]
-    in_zone_counts = in_zone_data.groupby(['Pitcher', 'Pitchtype']).size()
-    in_zone_percentage = (
-        in_zone_counts / pitch_type_counts * 100
-    ).rename('InZone %').fillna(0).round(1)
-
+  
     # -------------------
     # COMPLOC %
     # -------------------
@@ -1415,33 +1423,7 @@ def calculate_pitch_metrics(pitcher_data):
         comp_counts / pitch_type_counts * 100
     ).rename('CompLoc %').fillna(0).round(1)
 
-    # -----------------------
-    # INZONE WHIFF %
-    # -----------------------
-    in_zone_swinging_strikes = in_zone_data[
-        in_zone_data['Pitchcall'] == 'StrikeSwinging'
-    ].groupby(['Pitcher', 'Pitchtype']).size()
 
-    in_zone_swings = in_zone_data[
-        in_zone_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])
-    ].groupby(['Pitcher', 'Pitchtype']).size()
-
-    in_zone_whiff_percentages = (
-        (in_zone_swinging_strikes / in_zone_swings) * 100
-    ).rename('InZone Whiff %').fillna(0).round(1)
-
-    # -------------------
-    # CHASE %
-    # -------------------
-    out_zone_data = pitcher_data[~pitcher_data['Inzone']]
-    out_zone_swings = out_zone_data[
-        out_zone_data['Pitchcall'].isin(['StrikeSwinging', 'FoulBall', 'InPlay'])
-    ].groupby(['Pitcher', 'Pitchtype']).size()
-
-    total_out_zone_pitches = out_zone_data.groupby(['Pitcher', 'Pitchtype']).size()
-    chase_percentage = (
-        out_zone_swings / total_out_zone_pitches * 100
-    ).rename('Chase %').fillna(0).round(1)
 
     # -----------------------
     # FINAL DATAFRAME JOIN
