@@ -1509,7 +1509,7 @@ def display_pitch_metrics():
 
 # Function to display raw data
 def display_raw_data():
-    st.write(f"### Raw Data for {selected_pitcher} on {', '.join(selected_dates)}")
+    st.write(f"### Raw Data for {selected_pitcher}")
     st.dataframe(filtered_data)
 
 
