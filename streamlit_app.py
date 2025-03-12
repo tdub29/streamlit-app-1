@@ -828,27 +828,26 @@ st.sidebar.header("Filter Options")
 # 1) Get unique pitchers and exclude "Bunnell, Jack"
 filtered_pitchers = df['Pitcher'].unique()
 filtered_pitchers = [pitcher for pitcher in filtered_pitchers if pitcher != "Bunnell, Jack"]
-
 # 2) Insert "All Pitchers" at the top (not as default selection)
 filtered_pitchers.insert(0, "All Pitchers")
 
 # 3) Selectbox for pitcher
 selected_pitcher = st.sidebar.selectbox("Select Pitcher", filtered_pitchers)
 
-# 4) Determine which dates to show:
-if selected_pitcher == "All Pitchers":
-    # If "All Pitchers" selected, we show dates from the entire dataset
-    dates_available = df['Date'].unique()
-else:
-    # Otherwise, only show dates for the selected pitcher
-    dates_available = df[df['Pitcher'] == selected_pitcher]['Date'].unique()
-
-# 5) Multiselect for dates
-selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
-
 # 6) Get unique sources and add filter
 sources_available = df['Source'].unique()
 selected_sources = st.sidebar.multiselect("Select Sources", sources_available, default=sources_available)
+
+# 4) Determine which dates to show:
+if selected_pitcher == "All Pitchers":
+    # If "All Pitchers" is selected, filter dates based on selected sources
+    dates_available = df[df['Source'].isin(selected_sources)]['Date'].unique()
+else:
+    # Otherwise, filter dates for the selected pitcher and selected sources
+    dates_available = df[(df['Pitcher'] == selected_pitcher) & (df['Source'].isin(selected_sources))]['Date'].unique()
+
+# 5) Multiselect for dates
+selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
 # 7) Filter the main DataFrame accordingly
 filtered_data = df[df['Date'].isin(selected_dates) & df['Source'].isin(selected_sources)]
