@@ -340,7 +340,7 @@ def generate_reports(filtered_df):
     # Row 1: Logo
     ax_logo = fig.add_subplot(gs[0, 0:2])
     ax_logo.set_facecolor('white')
-    plot_logo(ax_logo, r"C:\Users\TrevorWhite\Downloads\San_Diego_Toreros_logo.svg.png")
+    plot_logo(ax_logo, "San_Diego_Toreros_logo.svg.png")
 
     # Row 2: Header text
     ax_header = fig.add_subplot(gs[1, 0:2])
