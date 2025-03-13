@@ -367,4 +367,29 @@ def generate_reports(filtered_df):
     # Rows 3 and 4: Color bar
     ax_color = fig.add_subplot(gs[2:4, 0])
     ax_color.set_facecolor('white')
-    plot_color_bar(ax_color, plt.cm.RdY
+    plot_color_bar(ax_color, plt.cm.RdYlGn_r)
+
+    ax_vs_rhh = fig.add_subplot(gs[2, 1])
+    ax_vs_rhh.set_facecolor('white')
+    ax_vs_rhh.text(0.5, 0.5, "vs RHH", ha='center', va='center', fontsize=14)
+    ax_vs_rhh.axis('off')
+
+    ax_vs_lhh = fig.add_subplot(gs[3, 1])
+    ax_vs_lhh.set_facecolor('white')
+    ax_vs_lhh.text(0.5, 0.5, "vs LHH", ha='center', va='center', fontsize=14)
+    ax_vs_lhh.axis('off')
+
+    # Row 5: Bottom row table of aggregated pitch metrics
+    ax_bottom = fig.add_subplot(gs[4, :])
+    ax_bottom.set_facecolor('white')
+    plot_blank(ax_bottom)
+    plot_bottom_row_table(ax_bottom, filtered_df)
+
+    for ax in fig.get_axes():
+        ax.set_facecolor('white')
+    plt.subplots_adjust(hspace=0.05)
+
+    st.pyplot(fig)
+
+    # Then close to free up resources
+    plt.close(fig)
