@@ -1,4 +1,4 @@
-import matplotlib as mpl 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import matplotlib.image as mpimg
@@ -73,8 +73,12 @@ def plot_count_summary_table(ax, df):
     for the count categories: '0-0', 'Hitters', 'Pitchers', '2K'
     """
     ax.axis('off')
-    categories = {"0-0": "Count_0_0", "Hitters": "Count_Hitters",
-                  "Pitchers": "Count_Pitchers", "2K": "Count_2k"}
+    categories = {
+        "0-0": "Count_0_0",
+        "Hitters": "Count_hitters",      # ← FIXED
+        "Pitchers": "Count_pitchers",    # ← FIXED
+        "2K": "Count_2k"
+    }
     table_data = []
     for cat_name, cat_col in categories.items():
         sub = df[df[cat_col] == 1]
@@ -178,7 +182,8 @@ def compute_bottom_row_summary(df):
         if total_pitches == 0:
             grouped_data[pitch_full] = {m: 0.0 for m in metrics}
             continue
-        avg_stuff_plus = group["Tj_stuff_plus"].mean()
+        # CHANGED Tj_stuff_plus → tj_stuff_plus
+        avg_stuff_plus = group["tj_stuff_plus"].mean()
         rv_100 = (group["Delta_run_exp"].sum() / total_pitches) * 100
         strike_pct = group["Strike"].mean() * 100
         comploc_pct = group["Comploc"].mean() * 100
@@ -258,13 +263,14 @@ def plot_bottom_row_table(ax, df):
 
 def plot_top_5_events(ax, df):
     ax.axis('off')
-    top_events = df[['Event_Desc', 'Delta_run_exp']].copy()
+    # CHANGED 'Event_Desc' → 'Event_desc'
+    top_events = df[['Event_desc', 'Delta_run_exp']].copy()
     top_events['abs_delta_run_exp'] = top_events['Delta_run_exp'].abs()
     top_events = top_events.sort_values(by='abs_delta_run_exp', ascending=False).head(5)
     lines = []
     for i, (_, row) in enumerate(top_events.iterrows(), 1):
         color = 'green' if row['Delta_run_exp'] < 0 else 'darkred'
-        event_text = f"#{i}. {row['Event_Desc']}: {row['Delta_run_exp']:.2f} RV"
+        event_text = f"#{i}. {row['Event_desc']}: {row['Delta_run_exp']:.2f} RV"
         lines.append((event_text, color))
     y_pos = 0.8
     for text, color in lines:
@@ -321,12 +327,10 @@ def generate_reports(filtered_df):
         print("No data available to generate a report.")
         return
     
-    # Use the first available pitcher name from the filtered data
     pitcher = filtered_df['Pitcher'].iloc[0] if 'Pitcher' in filtered_df.columns else "UnknownPitcher"
     batting_team = filtered_df['Battingteam'].iloc[0] if 'Battingteam' in filtered_df.columns else "UnknownTeam"
     report_date = pd.to_datetime(filtered_df['Date']).min().strftime('%Y-%m-%d') if 'Date' in filtered_df.columns else "UnknownDate"
 
-    # Set up figure and GridSpec layout
     fig = plt.figure(figsize=(12, 14))
     fig.patch.set_facecolor('white')
     height_ratios = [0.13, 0.15, 0.3, 0.3, 0.25]
@@ -360,36 +364,7 @@ def generate_reports(filtered_df):
     ax_summary.set_facecolor('white')
     plot_game_summary(ax_summary, filtered_df)
 
-    # Rows 3 and 4: Color bar (we omit scatter plots for this summary report)
+    # Rows 3 and 4: Color bar
     ax_color = fig.add_subplot(gs[2:4, 0])
     ax_color.set_facecolor('white')
-    plot_color_bar(ax_color, plt.cm.RdYlGn_r)
-
-    ax_vs_rhh = fig.add_subplot(gs[2, 1])
-    ax_vs_rhh.set_facecolor('white')
-    ax_vs_rhh.text(0.5, 0.5, "vs RHH", ha='center', va='center', fontsize=14)
-    ax_vs_rhh.axis('off')
-
-    ax_vs_lhh = fig.add_subplot(gs[3, 1])
-    ax_vs_lhh.set_facecolor('white')
-    ax_vs_lhh.text(0.5, 0.5, "vs LHH", ha='center', va='center', fontsize=14)
-    ax_vs_lhh.axis('off')
-
-    # Row 5: Bottom row table of aggregated pitch metrics
-    ax_bottom = fig.add_subplot(gs[4, :])
-    ax_bottom.set_facecolor('white')
-    plot_blank(ax_bottom)
-    plot_bottom_row_table(ax_bottom, filtered_df)
-
-    for ax in fig.get_axes():
-        ax.set_facecolor('white')
-    plt.subplots_adjust(hspace=0.05)
-
-    # Save the report
-    file_name = f"{pitcher}_{batting_team}_{report_date}.pdf"
-    save_dir = r"C:\Users\TrevorWhite\OneDrive - Good360\Documents\bsb\scorecards"
-    os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, file_name)
-    plt.savefig(save_path, format="pdf", bbox_inches="tight")
-    print(f"Report saved: {save_path}")
-    plt.close(fig)
+    plot_color_bar(ax_color, plt.cm.RdY
