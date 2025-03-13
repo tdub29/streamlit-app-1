@@ -158,8 +158,8 @@ def plot_pitch_scatter(ax, data, cmap, norm, title=None, overall_top_5=None):
         ax.set_title(title, fontsize=16, pad=10)
 
     # Check for column name inconsistencies and adjust accordingly
-    px_col = "PX" if "PX" in data.columns else "Px"
-    pz_col = "PZ" if "PZ" in data.columns else "Pz"
+    px_col = "Platelocside"
+    pz_col = "Platelocheight"
     exp_col = "delta_run_exp_squared" if "delta_run_exp_squared" in data.columns else "Delta_run_exp_squared"
 
     # Scatter plot for pitch locations
