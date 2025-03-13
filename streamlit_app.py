@@ -16,7 +16,7 @@ import lightgbm
 import xgboost as xgb
 import catboost
 from matplotlib.colors import Normalize
-from pitcher_reports import generate_reports
+# from pitcher_reports import generate_report
 
 
 
@@ -1512,6 +1512,7 @@ def generate_pitch_reports_page():
     st.write("Click below to generate detailed pitch reports for each pitcher.")
 
     if st.button("Generate Reports"):
+        from pitcher_reports import generate_reports
         generate_reports(filtered_data)  # Call the function with the filtered dataset
         st.success("Reports generated successfully!")
 
