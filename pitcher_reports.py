@@ -207,8 +207,8 @@ def compute_bottom_row_summary(df):
             "Ext": group["Extension"].mean(),
             "HAA": group["Horzapprangle"].mean(),
             "VAA": group["Vertapprangle"].mean(),
-            "IVB": group["Az"].mean(),
-            "HB": group["Ax"].mean(),
+            "IVB": group["Inducedvertbreak"].mean(),
+            "HB": group["Horzbreak"].mean(),
             "RelZ": group["Relheight"].mean(),
             "RelX": group["Relside"].mean()
         }
