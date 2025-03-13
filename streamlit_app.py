@@ -16,6 +16,8 @@ import lightgbm
 import xgboost as xgb
 import catboost
 from matplotlib.colors import Normalize
+from generate_pitch_reports import generate_reports
+
 
 
 try:
@@ -1505,6 +1507,15 @@ def display_raw_data():
     st.write(f"### Raw Data for {selected_pitcher}")
     st.dataframe(filtered_data)
 
+def generate_pitch_reports_page():
+    st.write("### Generate Pitch Reports")
+    st.write("Click below to generate detailed pitch reports for each pitcher.")
+
+    if st.button("Generate Reports"):
+        generate_reports(filtered_data)  # Call the function with the filtered dataset
+        st.success("Reports generated successfully!")
+
+
 
 
 # Streamlit Page Navigation
@@ -1518,7 +1529,8 @@ pages = {
     "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
     "Polar Plots - Understanding Tilt": create_polar_plots,
     "Ideal Pitch Locations": plot_ideal_pitch_locations,
-    "Raw Data": display_raw_data
+    "Raw Data": display_raw_data,
+     "Generate Pitch Reports": generate_pitch_reports_page  # Add this
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
 
