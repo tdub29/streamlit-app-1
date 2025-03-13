@@ -16,7 +16,7 @@ import lightgbm
 import xgboost as xgb
 import catboost
 from matplotlib.colors import Normalize
-from generate_pitch_reports import generate_reports
+from pitcher_reports import generate_reports
 
 
 
