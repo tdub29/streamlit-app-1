@@ -1508,13 +1508,9 @@ def display_raw_data():
     st.dataframe(filtered_data)
 
 def generate_pitch_reports_page():
-    st.write("### Generate Pitch Reports")
-    st.write("Click below to generate detailed pitch reports for each pitcher.")
-
-    if st.button("Generate Reports"):
-        from pitcher_reports import generate_reports
-        generate_reports(filtered_data)  # Call the function with the filtered dataset
-        st.success("Reports generated successfully!")
+    st.write("#### Pitch Reports")
+    from pitcher_reports import generate_reports
+    generate_reports(filtered_data)  # Call the function with the filtered dataset
 
 
 
