@@ -422,13 +422,13 @@ def generate_reports(filtered_df):
         # For Right-handed batters (Row 3)
         ax_pitch_rhh = fig.add_subplot(gs[2, i+2])
         ax_pitch_rhh.set_facecolor('white')
-        data_rhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'R')]
+        data_rhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'Right')]
         plot_pitch_scatter(ax_pitch_rhh, data_rhh, custom_cmap, norm, title=pitch_label, overall_top_5=None)
         
         # For Left-handed batters (Row 4)
         ax_pitch_lhh = fig.add_subplot(gs[3, i+2])
         ax_pitch_lhh.set_facecolor('white')
-        data_lhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'L')]
+        data_lhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'Left')]
         plot_pitch_scatter(ax_pitch_lhh, data_lhh, custom_cmap, norm, overall_top_5=None)
 
     # Row 5: Bottom row table of aggregated pitch metrics
