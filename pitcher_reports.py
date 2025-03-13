@@ -147,23 +147,56 @@ def plot_color_bar(ax, cmap):
     ax.set_title("Run Value per Pitch", fontsize=14, rotation=90, x=-0.5, y=0.5, va='center')
 
 def plot_pitch_scatter(ax, data, cmap, norm, title=None, overall_top_5=None):
+    """
+    Plots a PX/PZ scatter for the given data, with an optional title.
+    Maintains the aspect ratio and hides ticks.
+
+    Additionally, if overall_top_5 is provided (the overall top 5 pitches for the pitcher),
+    it labels those points that are in the current subset using their overall ranking.
+    """
     if title:
         ax.set_title(title, fontsize=16, pad=10)
-    ax.scatter(data['Px'], data['Pz'], c=data['Delta_run_exp_squared'],
-               cmap=cmap, norm=norm, s=60, edgecolor='black')
+
+    # Check for column name inconsistencies and adjust accordingly
+    px_col = "PX" if "PX" in data.columns else "Px"
+    pz_col = "PZ" if "PZ" in data.columns else "Pz"
+    exp_col = "delta_run_exp_squared" if "delta_run_exp_squared" in data.columns else "Delta_run_exp_squared"
+
+    # Scatter plot for pitch locations
+    ax.scatter(
+        data[px_col], data[pz_col],
+        c=data[exp_col], cmap=cmap, norm=norm,
+        s=60, edgecolor='black'
+    )
+
+    # Add strike zone and home plate visualization
     ax.add_patch(get_strike_zone())
     ax.add_patch(get_home_plate())
+
     ax.set_xlim(-2.5, 2.5)
     ax.set_ylim(0, 5)
     ax.set_xticks([])
     ax.set_yticks([])
-    ax.set_aspect(5/4)
+    ax.set_aspect(5 / 4)
+
+    # If overall_top_5 is provided, label points with their overall ranking
     if overall_top_5 is not None:
         top_subset = overall_top_5[overall_top_5.index.isin(data.index)]
-        for _, row in top_subset.iterrows():
-            ax.text(row['Px'] + 0.05, row['Pz'] + 0.05,
-                    str(row['overall_rank']), color='blue', fontsize=10, fontweight='bold')
 
+        for _, row in top_subset.iterrows():
+            x_val = row[px_col]
+            y_val = row[pz_col]
+            overall_rank = row.get('overall_rank', None)  # Check if column exists
+            if overall_rank is not None:
+                ax.text(
+                    x_val + 0.05,
+                    y_val + 0.05,
+                    str(overall_rank),
+                    color='blue',
+                    fontsize=10,
+                    fontweight='bold'
+                )
+              
 def compute_bottom_row_summary(df):
     format_map = {
         "P": "{:.0f}", "Usage%": "{:.0f}", "Vel": "{:.1f}", "MaxVel": "{:.1f}",
