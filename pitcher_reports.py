@@ -412,11 +412,34 @@ def generate_reports(filtered_df):
     ax_vs_lhh.text(0.5, 0.5, "vs LHH", ha='center', va='center', fontsize=14)
     ax_vs_lhh.axis('off')
 
+        # Define pitch groups and visualization parameters.
+    pitch_groups = {"Fast": "Fast", "Break": "Break", "Slow": "Slow"}
+    custom_cmap = plt.cm.RdYlGn_r
+    norm = TwoSlopeNorm(vmin=-0.5, vcenter=0.05, vmax=1.5)
+
+    # Row 3 & 4: Scatter plots for each pitch group, separated by batter side.
+    for i, (pitch_label, pitch_group) in enumerate(pitch_groups.items()):
+        # For Right-handed batters (Row 3)
+        ax_pitch_rhh = fig.add_subplot(gs[2, i+2])
+        ax_pitch_rhh.set_facecolor('white')
+        data_rhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'R')]
+        plot_pitch_scatter(ax_pitch_rhh, data_rhh, custom_cmap, norm, title=pitch_label, overall_top_5=None)
+        
+        # For Left-handed batters (Row 4)
+        ax_pitch_lhh = fig.add_subplot(gs[3, i+2])
+        ax_pitch_lhh.set_facecolor('white')
+        data_lhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'L')]
+        plot_pitch_scatter(ax_pitch_lhh, data_lhh, custom_cmap, norm, overall_top_5=None)
+
     # Row 5: Bottom row table of aggregated pitch metrics
     ax_bottom = fig.add_subplot(gs[4, :])
     ax_bottom.set_facecolor('white')
     plot_blank(ax_bottom)
     plot_bottom_row_table(ax_bottom, filtered_df)
+
+    
+
+    
 
     for ax in fig.get_axes():
         ax.set_facecolor('white')
