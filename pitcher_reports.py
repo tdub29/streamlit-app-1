@@ -75,8 +75,8 @@ def plot_count_summary_table(ax, df):
     ax.axis('off')
     categories = {
         "0-0": "Count_0_0",
-        "Hitters": "Count_hitters",      # ← FIXED
-        "Pitchers": "Count_pitchers",    # ← FIXED
+        "Hitters": "Count_hitters",
+        "Pitchers": "Count_pitchers",
         "2K": "Count_2k"
     }
     table_data = []
@@ -391,5 +391,4 @@ def generate_reports(filtered_df):
 
     st.pyplot(fig)
 
-    # Then close to free up resources
     plt.close(fig)
