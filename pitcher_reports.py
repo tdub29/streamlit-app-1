@@ -4,7 +4,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.image as mpimg
 import numpy as np
 import pandas as pd
-from matplotlib.patches import Rectangle, Polygon, Arc, Ellipse
+from matplotlib.patches import Rectangle, Polygon
 import seaborn as sns
 from matplotlib.colors import TwoSlopeNorm
 from datetime import datetime, timedelta
@@ -16,7 +16,6 @@ import os
 plt.style.use('default')
 sns.set_theme(style=None)
 plt.rcdefaults()
-plt.style.use('default')
 mpl.rcParams['figure.facecolor'] = '#FFFFFF'
 mpl.rcParams['axes.facecolor']   = '#FFFFFF'
 mpl.rcParams['savefig.facecolor'] = '#FFFFFF'
@@ -28,10 +27,6 @@ for param in ('text.color','axes.edgecolor','axes.labelcolor',
 # Helper function to lighten a color
 # ------------------------------------------------------------------
 def lighten_color(color, amount=0.7):
-    """
-    Lightens the given color by multiplying (1-luminosity) by the given amount.
-    Input can be matplotlib color string, hex string, or RGB tuple.
-    """
     import matplotlib.colors as mc
     import colorsys
     try:
@@ -49,10 +44,6 @@ def lighten_color(color, amount=0.7):
 percentile_table = pd.read_csv("pitch_metric_percentiles.csv")
 
 def get_dynamic_norm(pitch_type, metric):
-    """
-    Given a pitch_type and a metric key (from the percentile CSV),
-    return a TwoSlopeNorm using the 10th, 50th, and 90th percentile values.
-    """
     rows = percentile_table[percentile_table["pitch_type"] == pitch_type]
     if rows.empty:
         return TwoSlopeNorm(vmin=0, vcenter=50, vmax=100)
@@ -65,11 +56,9 @@ def get_dynamic_norm(pitch_type, metric):
     return TwoSlopeNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
 
 def get_strike_zone():
-    """Returns a new Rectangle patch for the strike zone."""
     return Rectangle((-0.83, 1.5), 1.66, 2.1, edgecolor='black', facecolor='none')
 
 def get_home_plate():
-    """Returns a new Polygon patch for home plate."""
     plate_vertices = [(-0.83, 0.1), (0.83, 0.1), (0.65, 0.25), (0, 0.5), (-0.65, 0.25)]
     return Polygon(plate_vertices, closed=True, linewidth=1, edgecolor='black', facecolor='none')
 
@@ -80,18 +69,12 @@ df_count_summary = pd.read_csv("count_summary_table.csv")
 
 def plot_count_summary_table(ax, df):
     """
-    Plots a clean table in 'ax' showing 
-    RV/100, Win %, and Total Pitches (P) for these four count categories:
-      '0-0', 'Hitters', 'Pitchers', '2K'
-    The vcenter values for RV/100 and Win % are dynamically loaded from df_count_summary.
+    Plots a table in 'ax' showing RV/100, Win %, and Total Pitches (P)
+    for the count categories: '0-0', 'Hitters', 'Pitchers', '2K'
     """
     ax.axis('off')
-    categories = {
-        "0-0": "Count_0_0",
-        "Hitters": "Count_Hitters",
-        "Pitchers": "Count_Pitchers",
-        "2K": "Count_2k"
-    }
+    categories = {"0-0": "Count_0_0", "Hitters": "Count_Hitters",
+                  "Pitchers": "Count_Pitchers", "2K": "Count_2k"}
     table_data = []
     for cat_name, cat_col in categories.items():
         sub = df[df[cat_col] == 1]
@@ -110,13 +93,10 @@ def plot_count_summary_table(ax, df):
     table.auto_set_font_size(False)
     table.set_fontsize(12)
     table.scale(1.3, 1.2)
-
     rv_col_idx = col_labels.index("RV/100")
     win_col_idx = col_labels.index("Win %")
-
     for r, row in enumerate(table_data):
-        count_type = row[0]
-        row_data = df_count_summary[df_count_summary["Count"] == count_type]
+        row_data = df_count_summary[df_count_summary["Count"] == row[0]]
         if row_data.empty:
             continue
         rv_vcenter = float(row_data["RV/100"].values[0])
@@ -124,23 +104,20 @@ def plot_count_summary_table(ax, df):
         rv_norm = TwoSlopeNorm(vmin=-5, vcenter=rv_vcenter, vmax=10)
         win_norm = TwoSlopeNorm(vmin=0, vcenter=win_vcenter, vmax=100)
         for c, cell in table.get_celld().items():
-            if c[0] == r + 1:  # Skip header row
+            if c[0] == r+1:
                 try:
                     value = float(cell.get_text().get_text())
                     if c[1] == rv_col_idx:
                         color = plt.cm.RdYlGn_r(rv_norm(value))
-                        color = lighten_color(color, amount=0.7)
-                        cell.set_facecolor(color)
+                        cell.set_facecolor(lighten_color(color, amount=0.7))
                     elif c[1] == win_col_idx:
                         color = plt.cm.RdYlGn(win_norm(value))
-                        color = lighten_color(color, amount=0.7)
-                        cell.set_facecolor(color)
+                        cell.set_facecolor(lighten_color(color, amount=0.7))
                 except ValueError:
                     pass
     ax.set_title("RV/100, Win% by Count", fontsize=12, pad=10)
 
 def plot_logo(ax, logo_path):
-    """Displays the logo on the left side of the Axes."""
     ax.axis('off')
     try:
         logo = mpimg.imread(logo_path)
@@ -149,19 +126,13 @@ def plot_logo(ax, logo_path):
         ax.text(0.25, 0.5, "Logo not found", ha='center', va='center', fontsize=12)
 
 def plot_header(ax, text_content):
-    """Displays the header text on the right side of the Axes."""
     ax.axis('off')
     ax.text(0.75, 0.5, text_content, ha='left', va='center', fontsize=12)
 
 def plot_blank(ax):
-    """Leaves the Axes blank."""
     ax.axis('off')
 
 def plot_color_bar(ax, cmap):
-    """
-    Plots the vertical gradient (from -0.5 to 1.5) in the specified Axes.
-    The labels have been swapped: -0.5\n3-0 out, 1.5\n0-2 HR
-    """
     gradient = np.linspace(-0.5, 1.5, 256).reshape(256, 1)
     norm = plt.Normalize(-0.5, 1.5)
     ax.imshow(gradient, aspect='auto', cmap=cmap, norm=norm, origin='lower')
@@ -172,19 +143,10 @@ def plot_color_bar(ax, cmap):
     ax.set_title("Run Value per Pitch", fontsize=14, rotation=90, x=-0.5, y=0.5, va='center')
 
 def plot_pitch_scatter(ax, data, cmap, norm, title=None, overall_top_5=None):
-    """
-    Plots a scatter of Px/Pz for the given data with color based on Delta_run_exp_squared.
-    If a title is provided it is set. Additionally, if overall_top_5 is provided,
-    those points are labeled with their overall ranking.
-    """
     if title:
         ax.set_title(title, fontsize=16, pad=10)
-    # Use "Px" and "Pz" (assumed to be precomputed in the data)
-    ax.scatter(
-        data['Px'], data['Pz'],
-        c=data['Delta_run_exp_squared'], cmap=cmap, norm=norm,
-        s=60, edgecolor='black'
-    )
+    ax.scatter(data['Px'], data['Pz'], c=data['Delta_run_exp_squared'],
+               cmap=cmap, norm=norm, s=60, edgecolor='black')
     ax.add_patch(get_strike_zone())
     ax.add_patch(get_home_plate())
     ax.set_xlim(-2.5, 2.5)
@@ -195,39 +157,18 @@ def plot_pitch_scatter(ax, data, cmap, norm, title=None, overall_top_5=None):
     if overall_top_5 is not None:
         top_subset = overall_top_5[overall_top_5.index.isin(data.index)]
         for _, row in top_subset.iterrows():
-            x_val = row['Px']
-            y_val = row['Pz']
-            overall_rank = row['overall_rank']
-            ax.text(x_val + 0.05, y_val + 0.05, str(overall_rank),
-                    color='blue', fontsize=10, fontweight='bold')
+            ax.text(row['Px'] + 0.05, row['Pz'] + 0.05,
+                    str(row['overall_rank']), color='blue', fontsize=10, fontweight='bold')
 
 def compute_bottom_row_summary(df):
-    """
-    Computes average values for selected pitch metrics grouped by Pitchtype,
-    while storing the abbreviated pitch type for color mapping.
-    """
     format_map = {
-        "P": "{:.0f}",
-        "Usage%": "{:.0f}",
-        "Vel": "{:.1f}",
-        "MaxVel": "{:.1f}",
-        "Stuff+": "{:.1f}",
-        "RV/100": "{:.1f}",
-        "Str%": "{:.0f}",
-        "Comp%": "{:.0f}",
-        "zWhiff%": "{:.0f}",
-        "Chase%": "{:.0f}",
-        "Ext": "{:.1f}",
-        "HAA": "{:.1f}",
-        "VAA": "{:.1f}",
-        "IVB": "{:.1f}",
-        "HB": "{:.1f}",
-        "RelZ": "{:.1f}",
-        "RelX": "{:.1f}"
+        "P": "{:.0f}", "Usage%": "{:.0f}", "Vel": "{:.1f}", "MaxVel": "{:.1f}",
+        "Stuff+": "{:.1f}", "RV/100": "{:.1f}", "Str%": "{:.0f}", "Comp%": "{:.0f}",
+        "zWhiff%": "{:.0f}", "Chase%": "{:.0f}", "Ext": "{:.1f}", "HAA": "{:.1f}",
+        "VAA": "{:.1f}", "IVB": "{:.1f}", "HB": "{:.1f}", "RelZ": "{:.1f}", "RelX": "{:.1f}"
     }
-    metrics = ["P", "Usage%", "Vel", "MaxVel", "Stuff+", "RV/100", "Str%", "Comp%", 
+    metrics = ["P", "Usage%", "Vel", "MaxVel", "Stuff+", "RV/100", "Str%", "Comp%",
                "zWhiff%", "Chase%", "Ext", "HAA", "VAA", "IVB", "HB", "RelZ", "RelX"]
-
     grouped_data = {}
     abbrev_map = {}
     for pitch_full, group in df.groupby('Pitchtype'):
@@ -275,7 +216,6 @@ def compute_bottom_row_summary(df):
     return row_labels, metrics, cellText, abbrev_map
 
 def plot_bottom_row_table(ax, df):
-    """Plots the bottom-row table grouped by Pitchtype with dynamic coloring."""
     ax.axis('off')
     row_labels, col_labels, cellText, abbrev_map = compute_bottom_row_summary(df)
     table = ax.table(cellText=cellText, rowLabels=row_labels, colLabels=col_labels, loc="center")
@@ -284,12 +224,7 @@ def plot_bottom_row_table(ax, df):
     table.scale(1.8, 1.8)
     rv100_col_idx = col_labels.index("RV/100")
     stuff_col_idx = col_labels.index("Stuff+")
-    dynamic_metrics = {
-        "Str%": "strike_pct",
-        "Comp%": "comploc_pct",
-        "zWhiff%": "z_whiff_pct",
-        "Chase%": "chase_pct"
-    }
+    dynamic_metrics = {"Str%": "strike_pct", "Comp%": "comploc_pct", "zWhiff%": "z_whiff_pct", "Chase%": "chase_pct"}
     dynamic_cols = {name: col_labels.index(name) for name in dynamic_metrics}
     rv_norm = TwoSlopeNorm(vmin=-5, vcenter=0, vmax=10)
     stuff_norm = TwoSlopeNorm(vmin=80, vcenter=100, vmax=120)
@@ -314,8 +249,7 @@ def plot_bottom_row_table(ax, df):
                     color = plt.cm.PiYG(norm_obj(value))
                 else:
                     continue
-                color = lighten_color(color, amount=0.7)
-                cell.set_facecolor(color)
+                cell.set_facecolor(lighten_color(color, amount=0.7))
             except ValueError:
                 pass
     for col_index in range(len(col_labels)):
@@ -323,10 +257,6 @@ def plot_bottom_row_table(ax, df):
     ax.set_title("Pitch Metrics", fontsize=14, pad=2, y=0.90)
 
 def plot_top_5_events(ax, df):
-    """
-    Plots the top 5 most significant events by absolute Delta_run_exp in descending order.
-    Negative values (good for pitcher) are green; positive values are dark red.
-    """
     ax.axis('off')
     top_events = df[['Event_Desc', 'Delta_run_exp']].copy()
     top_events['abs_delta_run_exp'] = top_events['Delta_run_exp'].abs()
@@ -343,17 +273,6 @@ def plot_top_5_events(ax, df):
     ax.set_title("5 Biggest Pitches - See Location Plots", fontsize=12, pad=5, x=0.85)
 
 def compute_game_summary(df):
-    """
-    Computes a summary of key pitching stats:
-      - Total Pitches (P)
-      - Strike-Ball Count (K-B)
-      - Strikeouts (K)
-      - Walks (BB)
-      - Hits
-      - Runs Allowed
-      - First-Pitch Strike % (FPStr%)
-      - Total Whiffs
-    """
     total_pitches = len(df)
     total_strikes = df['Strike'].sum()
     total_balls = df['Event_category'].isin(["ball", "walk", "hit_by_pitch"]).sum()
@@ -377,7 +296,6 @@ def compute_game_summary(df):
     return summary
 
 def plot_game_summary(ax, df):
-    """Plots the computed game summary in a table inside the given Axes."""
     ax.axis('off')
     summary = compute_game_summary(df)
     col_labels = list(summary.keys())
@@ -391,111 +309,87 @@ def plot_game_summary(ax, df):
         cell.get_text().set_va("center")
         cell.set_linewidth(0.5)
 
-# ------------------------------------------------------------------
-# Loop through each unique pitcher and generate a report
-# ------------------------------------------------------------------
-
-# Here we assume the final merged DataFrame is called df (with columns capitalized).
-# It should include at least the following columns:
-# "Pitcher", "Date", "Battingteam", "Delta_run_exp", "Delta_run_exp_squared", 
-# "Pitchgroup", "Batterside", "Event_Desc", "Pitchresult", "Pitchnuminab", "Runs scored", etc.
-for pitcher in df['Pitcher'].unique():
-    # Define date range: last 5 days
-    five_days_ago = datetime.now() - timedelta(days=5)
-    # Filter data for current pitcher, excluding rows where Battingteam is 'USD'
-    df_transformed = df[(df['Pitcher'] == pitcher) &
-                        (df['Battingteam'] != 'USD') &
-                        (pd.to_datetime(df['Date']) >= five_days_ago)]
-    if df_transformed.empty:
-        print(f"Skipping {pitcher} as no valid data is available.")
-        continue
-    # Compute overall top 5 pitches based on abs(Delta_run_exp)
-    overall_top_5 = df_transformed.loc[df_transformed['Delta_run_exp'].abs().nlargest(5).index].copy()
-    overall_top_5.sort_values('Delta_run_exp', ascending=False, inplace=True)
-    overall_top_5['overall_rank'] = range(1, len(overall_top_5) + 1)
+# ---------------------------------------------------------------
+# Generate a report for the filtered data (single report)
+# ---------------------------------------------------------------
+def generate_reports(filtered_df):
+    """
+    Generate a pitching report for the filtered data.
+    Uses the first available pitcher name and prints a report.
+    """
+    if filtered_df is None or filtered_df.empty:
+        print("No data available to generate a report.")
+        return
+    
+    # Use the first available pitcher name from the filtered data
+    pitcher = filtered_df['Pitcher'].iloc[0] if 'Pitcher' in filtered_df.columns else "UnknownPitcher"
+    batting_team = filtered_df['Battingteam'].iloc[0] if 'Battingteam' in filtered_df.columns else "UnknownTeam"
+    report_date = pd.to_datetime(filtered_df['Date']).min().strftime('%Y-%m-%d') if 'Date' in filtered_df.columns else "UnknownDate"
 
     # Set up figure and GridSpec layout
     fig = plt.figure(figsize=(12, 14))
     fig.patch.set_facecolor('white')
     height_ratios = [0.13, 0.15, 0.3, 0.3, 0.25]
     width_ratios = [0.7, 0.8, 2.55, 2.55, 2.55]
-    gs = GridSpec(nrows=5, ncols=5, figure=fig,
-                  height_ratios=height_ratios, width_ratios=width_ratios)
+    gs = GridSpec(nrows=5, ncols=5, figure=fig, height_ratios=height_ratios, width_ratios=width_ratios)
 
-    # Row 1: Logo (cols 0-1)
+    # Row 1: Logo
     ax_logo = fig.add_subplot(gs[0, 0:2])
     ax_logo.set_facecolor('white')
     plot_logo(ax_logo, r"C:\Users\TrevorWhite\Downloads\San_Diego_Toreros_logo.svg.png")
 
-    # Row 2: Header text (cols 0-1)
+    # Row 2: Header text
     ax_header = fig.add_subplot(gs[1, 0:2])
     ax_header.set_facecolor('white')
-    header_text = f"{df_transformed['Pitcher'].iloc[0]}\nPost-Series Pitching Report\n" + \
-                  ", ".join(pd.to_datetime(df_transformed['Date']).dt.strftime('%Y-%m-%d').unique())
+    header_text = f"{pitcher}\nPost-Series Pitching Report\n{report_date}"
     ax_header.text(0, 0.5, header_text, ha='left', va='center', fontsize=18)
     ax_header.axis('off')
 
-    # Top-right count summary table
-    ax3 = fig.add_subplot(gs[0, 4])
-    ax3.set_facecolor('white')
-    plot_count_summary_table(ax3, df_transformed)
+    # Row 1 Top-right: Count summary table
+    ax_count = fig.add_subplot(gs[0, 4])
+    ax_count.set_facecolor('white')
+    plot_count_summary_table(ax_count, filtered_df)
 
-    # Top-center: Top 5 events
-    ax35 = fig.add_subplot(gs[0, 2])
-    ax35.set_facecolor('white')
-    plot_top_5_events(ax35, df_transformed)
+    # Row 1 Top-center: Top 5 events
+    ax_events = fig.add_subplot(gs[0, 2])
+    ax_events.set_facecolor('white')
+    plot_top_5_events(ax_events, filtered_df)
 
-    # Row 2: Game Summary in center (cols 2)
-    ax4 = fig.add_subplot(gs[1, 2])
-    ax4.set_facecolor('white')
-    plot_game_summary(ax4, df_transformed)
+    # Row 2 Center: Game Summary
+    ax_summary = fig.add_subplot(gs[1, 2])
+    ax_summary.set_facecolor('white')
+    plot_game_summary(ax_summary, filtered_df)
 
-    # Rows 3 and 4: Color Bar (col 0) + Scatter Plots
-    ax5 = fig.add_subplot(gs[2:4, 0])
-    ax5.set_facecolor('white')
-    plot_color_bar(ax5, plt.cm.RdYlGn_r)
+    # Rows 3 and 4: Color bar (we omit scatter plots for this summary report)
+    ax_color = fig.add_subplot(gs[2:4, 0])
+    ax_color.set_facecolor('white')
+    plot_color_bar(ax_color, plt.cm.RdYlGn_r)
 
-    ax6 = fig.add_subplot(gs[2, 1])
-    ax6.set_facecolor('white')
-    ax6.text(0.5, 0.5, "vs RHH", ha='center', va='center', fontsize=14)
-    ax6.axis('off')
+    ax_vs_rhh = fig.add_subplot(gs[2, 1])
+    ax_vs_rhh.set_facecolor('white')
+    ax_vs_rhh.text(0.5, 0.5, "vs RHH", ha='center', va='center', fontsize=14)
+    ax_vs_rhh.axis('off')
 
-    ax10 = fig.add_subplot(gs[3, 1])
-    ax10.set_facecolor('white')
-    ax10.text(0.5, 0.5, "vs LHH", ha='center', va='center', fontsize=14)
-    ax10.axis('off')
+    ax_vs_lhh = fig.add_subplot(gs[3, 1])
+    ax_vs_lhh.set_facecolor('white')
+    ax_vs_lhh.text(0.5, 0.5, "vs LHH", ha='center', va='center', fontsize=14)
+    ax_vs_lhh.axis('off')
 
-    pitch_groups = {"Fast": "Fast", "Break": "Break", "Slow": "Slow"}
-    custom_cmap = plt.cm.RdYlGn_r
-    norm = TwoSlopeNorm(vmin=-0.5, vcenter=0.05, vmax=1.5)
-
-    # Rows 3 & 4: Scatter plots for each pitch group vs RHH and LHH
-    for i, (pitch_label, pitch_group) in enumerate(pitch_groups.items()):
-        ax_pitch_rhh = fig.add_subplot(gs[2, i+2])
-        ax_pitch_rhh.set_facecolor('white')
-        data_rhh = df_transformed[(df_transformed['Pitchgroup'] == pitch_group) & (df_transformed['Batterside'] == 'R')]
-        plot_pitch_scatter(ax_pitch_rhh, data_rhh, custom_cmap, norm, title=pitch_label, overall_top_5=overall_top_5)
-
-        ax_pitch_lhh = fig.add_subplot(gs[3, i+2])
-        ax_pitch_lhh.set_facecolor('white')
-        data_lhh = df_transformed[(df_transformed['Pitchgroup'] == pitch_group) & (df_transformed['Batterside'] == 'L')]
-        plot_pitch_scatter(ax_pitch_lhh, data_lhh, custom_cmap, norm, overall_top_5=overall_top_5)
-
-    # Row 5: Blank area for table background
-    ax14 = fig.add_subplot(gs[4, :])
-    ax14.set_facecolor('white')
-    plot_blank(ax14)
-    # Bottom row table of aggregated pitch metrics
-    plot_bottom_row_table(ax14, df_transformed)
+    # Row 5: Bottom row table of aggregated pitch metrics
+    ax_bottom = fig.add_subplot(gs[4, :])
+    ax_bottom.set_facecolor('white')
+    plot_blank(ax_bottom)
+    plot_bottom_row_table(ax_bottom, filtered_df)
 
     for ax in fig.get_axes():
         ax.set_facecolor('white')
     plt.subplots_adjust(hspace=0.05)
 
-    batting_team = df_transformed['Battingteam'].iloc[0] if 'Battingteam' in df_transformed.columns else "UnknownTeam"
-    min_date = pd.to_datetime(df_transformed['Date']).min().strftime('%Y-%m-%d')
-    file_name = f"{pitcher}_{batting_team}_{min_date}.pdf"
-    save_path = os.path.join(r"C:\Users\TrevorWhite\OneDrive - Good360\Documents\bsb\scorecards", file_name)
+    # Save the report
+    file_name = f"{pitcher}_{batting_team}_{report_date}.pdf"
+    save_dir = r"C:\Users\TrevorWhite\OneDrive - Good360\Documents\bsb\scorecards"
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, file_name)
     plt.savefig(save_path, format="pdf", bbox_inches="tight")
-    print(file_name)
+    print(f"Report saved: {save_path}")
     plt.close(fig)
