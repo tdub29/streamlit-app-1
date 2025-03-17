@@ -299,7 +299,7 @@ def Trumedia_feature_engineering(df):
         "RelX": "x0",           # Release side
         "HorzBrk": "ax",        # Horizontal break
         "IndVertBrk": "az",     # Vertical break
-        "PitchType": "pitch_type"
+        "pitchType": "pitch_type"
     })
 
     # Mirror for left-handed pitchers
