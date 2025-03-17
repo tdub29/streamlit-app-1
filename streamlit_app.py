@@ -1522,24 +1522,27 @@ def generate_pitch_reports_page():
 def plot_rolling_3_pitch_averages(df):
     """
     Plots a rolling average (window=3) of tj_stuff_plus over the pitch number
-    for each pitch type, ensuring that it is computed correctly per pitch type.
+    for each pitch type, ensuring:
+    - The count **restarts each day** per pitch type.
+    - The rolling average only considers the last 3 of **that pitch type**.
 
-    Fixes:
-    - Uses a **running count per pitch type** instead of overall pitch number.
-    - Ensures rolling average correctly applies to each pitch type independently.
+    This prevents the incorrect accumulation of different pitch types and resets each day.
     """
 
-    if df.empty or not all(col in df.columns for col in ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher"]):
+    if df.empty or not all(col in df.columns for col in ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher", "Date"]):
         st.write("Required columns not found or no data available.")
         return
+
+    # Convert 'Date' to datetime to ensure proper sorting
+    df["Date"] = pd.to_datetime(df["Date"])
 
     # Sort data correctly
     df_temp = df.copy().sort_values(by=['Pitcher', 'Date', 'PitcherPitchNo'])
 
-    # Create a **running count per pitch type** for each pitcher
-    df_temp["PitchTypeCount"] = df_temp.groupby(['Pitcher', 'Pitchtype']).cumcount() + 1
+    # Create a running count per pitch type **that resets each day**
+    df_temp["DailyPitchTypeCount"] = df_temp.groupby(['Pitcher', 'Pitchtype', 'Date']).cumcount() + 1
 
-    # Apply rolling average **only within each pitch type** across all days
+    # Apply rolling average **only within each pitch type across days**
     df_temp['RollingTJStuff+'] = (
         df_temp.groupby(['Pitcher', 'Pitchtype'])['tj_stuff_plus']
         .rolling(window=3, min_periods=1)
@@ -1551,16 +1554,17 @@ def plot_rolling_3_pitch_averages(df):
     fig, ax = plt.subplots(figsize=(10, 6))
     for pitch_type in df_temp['Pitchtype'].dropna().unique():
         df_plot = df_temp[df_temp['Pitchtype'] == pitch_type]
-        ax.plot(df_plot['PitchTypeCount'], df_plot['RollingTJStuff+'], marker='o', label=pitch_type)
+        ax.plot(df_plot['DailyPitchTypeCount'], df_plot['RollingTJStuff+'], marker='o', label=pitch_type)
 
     # Get pitcher name
     pitcher_name = df['Pitcher'].unique()[0] if "Pitcher" in df.columns else "Selected Pitcher"
     ax.set_title(f"Rolling 3-Pitch Average of TJStuff+ for {pitcher_name}")
-    ax.set_xlabel("Running Count per Pitch Type")
+    ax.set_xlabel("Running Count per Pitch Type (Resets Each Day)")
     ax.set_ylabel("Rolling Average TJStuff+")
     ax.legend(title="Pitch Type")
 
     st.pyplot(fig)
+
 
 
 
