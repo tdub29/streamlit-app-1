@@ -1036,7 +1036,7 @@ def create_break_plot():
     st.pyplot(fig)
 
 
-def plot_ing_stuff_plus():
+def plot_rolling_stuff_plus():
     """
     Plots a ing average of tj_stuff_plus over time, by pitch, for the selected pitcher.
     Expects 'Date', 'Time', and 'tj_stuff_plus' in the DataFrame, plus 'Pitcher'.
