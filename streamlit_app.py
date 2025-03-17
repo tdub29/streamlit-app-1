@@ -1036,9 +1036,9 @@ def create_break_plot():
     st.pyplot(fig)
 
 
-def plot_rolling_stuff_plus():
+def plot_ing_stuff_plus():
     """
-    Plots a rolling average of tj_stuff_plus over time, by pitch, for the selected pitcher.
+    Plots a ing average of tj_stuff_plus over time, by pitch, for the selected pitcher.
     Expects 'Date', 'Time', and 'tj_stuff_plus' in the DataFrame, plus 'Pitcher'.
     """
     # If there's no data, bail out early
@@ -1521,58 +1521,68 @@ def generate_pitch_reports_page():
 # -------------------------------
 def plot_rolling_3_pitch_averages(df):
     """
-    Plots the average tj_stuff_plus and Relspeed for every group of 3 pitches for each pitch type.
+    Produces two separate plots for every group of 3 pitches for each pitch type.
     
     Process:
     1. For each pitcher, pitch type, and date, assign a sequential count that resets daily.
-       Then, compute a group number (group 1 for the first 3 pitches, group 2 for the next 3, etc.).
+       Then, compute a group number where the first 3 pitches are group 1, the next 3 are group 2, etc.
     2. Aggregate across days by computing the average tj_stuff_plus and Relspeed for each pitch type and group.
-    3. Plot the aggregated averages with:
-       - A solid line for tj_stuff_plus.
-       - A dashed line for Relspeed.
+    3. Create two separate plots:
+       - One showing the average tj_stuff_plus per group.
+       - One showing the average Relspeed per group.
     """
     import pandas as pd
     import matplotlib.pyplot as plt
     import streamlit as st
 
-    # Check that required columns exist
+    # Ensure required columns exist
     required_cols = ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher", "Date", "Relspeed"]
     if df.empty or not all(col in df.columns for col in required_cols):
         st.write("Required columns not found or no data available.")
         return
 
-    # Ensure 'Date' is a datetime and sort the DataFrame
+    # Convert Date column to datetime and sort data
     df["Date"] = pd.to_datetime(df["Date"])
     df_temp = df.copy().sort_values(by=['Pitcher', 'Date', 'PitcherPitchNo'])
 
-    # For each pitcher, pitch type, and date, assign a sequential count that resets daily
+    # For each pitcher, pitch type, and date, assign a daily sequential count
     df_temp["DailyPitchCount"] = df_temp.groupby(['Pitcher', 'Pitchtype', 'Date']).cumcount()
-    # Compute group number: group 1 for pitches 0-2, group 2 for pitches 3-5, etc.
+    # Create a group number: 1 for pitches 0-2, 2 for pitches 3-5, etc.
     df_temp["PitchGroup"] = (df_temp["DailyPitchCount"] // 3) + 1
 
-    # Aggregate across days: compute the average for tj_stuff_plus and Relspeed for each group
+    # Aggregate across days by computing the mean for each pitch type and group
     df_agg = df_temp.groupby(["Pitcher", "Pitchtype", "PitchGroup"], as_index=False).agg({
         "tj_stuff_plus": "mean",
         "Relspeed": "mean"
     })
 
-    # Create the plot
-    fig, ax = plt.subplots(figsize=(10, 6))
+    # Use the first pitcher's name for the title (adjust if needed for multiple pitchers)
+    pitcher_name = df["Pitcher"].unique()[0] if "Pitcher" in df.columns else "Selected Pitcher"
+
+    # Plot for tj_stuff_plus
+    fig1, ax1 = plt.subplots(figsize=(10, 6))
     for pitch_type in df_agg['Pitchtype'].dropna().unique():
         df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
-        # Plot tj_stuff_plus as a solid line
-        ax.plot(df_plot["PitchGroup"], df_plot["tj_stuff_plus"], marker="o", label=f"{pitch_type} tj_stuff_plus")
-        # Plot Relspeed as a dashed line
-        ax.plot(df_plot["PitchGroup"], df_plot["Relspeed"], marker="o", linestyle="--", label=f"{pitch_type} Relspeed")
+        ax1.plot(df_plot["PitchGroup"], df_plot["tj_stuff_plus"], marker="o", label=pitch_type)
+    ax1.set_title(f"Avg TJStuff+ per 3-Pitch Group for {pitcher_name}")
+    ax1.set_xlabel("3-Pitch Group (Resets Each Day)")
+    ax1.set_ylabel("Average TJStuff+")
+    ax1.legend(title="Pitch Type")
 
-    # Use the first pitcher's name for the title (if multiple pitchers, adjust as needed)
-    pitcher_name = df["Pitcher"].unique()[0] if "Pitcher" in df.columns else "Selected Pitcher"
-    ax.set_title(f"Avg TJStuff+ & Relspeed per 3-Pitch Group for {pitcher_name}")
-    ax.set_xlabel("3-Pitch Group (Resets Each Day)")
-    ax.set_ylabel("Average Value")
-    ax.legend(title="Pitch Type & Metric")
+    # Plot for Relspeed
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    for pitch_type in df_agg['Pitchtype'].dropna().unique():
+        df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
+        ax2.plot(df_plot["PitchGroup"], df_plot["Relspeed"], marker="o", label=pitch_type)
+    ax2.set_title(f"Avg Relspeed per 3-Pitch Group for {pitcher_name}")
+    ax2.set_xlabel("3-Pitch Group (Resets Each Day)")
+    ax2.set_ylabel("Average Relspeed")
+    ax2.legend(title="Pitch Type")
 
-    st.pyplot(fig)
+    # Display both plots separately
+    st.pyplot(fig1)
+    st.pyplot(fig2)
+
 
 
 
