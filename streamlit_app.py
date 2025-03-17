@@ -803,6 +803,9 @@ def categorize_pitch_type(pitch_type):
 # Create a new column 'Pitchcategory' to categorize pitches
 df['Pitchcategory'] = df['Pitchtype'].apply(categorize_pitch_type)
 
+df = df.copy()
+df['PitcherPitchNo'] = df.groupby(['Pitcher', 'Date']).cumcount() + 1
+
 # Set up the color palette based on pitch type
 pitch_types = df['Pitchtype'].unique()
 palette = sns.color_palette('Set2', len(pitch_types))
