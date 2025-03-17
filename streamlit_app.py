@@ -1521,45 +1521,51 @@ def generate_pitch_reports_page():
 # -------------------------------
 def plot_rolling_3_pitch_averages(df):
     """
-    Plots a rolling average (window=3) of tj_stuff_plus over the pitch count for each pitch type.
+    Plots the average tj_stuff_plus for every group of 3 pitches for each pitch type.
     
-    This function:
-    - **Counts each pitch type cumulatively across all days**.
-    - **Computes the rolling average across all days**.
+    The process is:
+    1. For each pitcher, pitch type, and date, label the first 3 pitches as group 1,
+       the next 3 as group 2, etc.
+    2. Aggregate across days: compute the average tj_stuff_plus for each pitch type and group.
+    3. Plot the aggregated averages with the x-axis showing the group number.
     """
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import streamlit as st
 
-    if df.empty or not all(col in df.columns for col in ["tj_stuff_plus", "Pitchtype", "Pitcher"]):
+    # Check that required columns exist
+    required_cols = ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher", "Date"]
+    if df.empty or not all(col in df.columns for col in required_cols):
         st.write("Required columns not found or no data available.")
         return
 
-    # Sort data to ensure proper sequencing
-    df = df.copy().sort_values(by=["Pitcher", "Date", "PitcherPitchNo"])
+    # Ensure 'Date' is a datetime and sort the DataFrame
+    df["Date"] = pd.to_datetime(df["Date"])
+    df_temp = df.copy().sort_values(by=['Pitcher', 'Date', 'PitcherPitchNo'])
 
-    # Compute a cumulative count **for each pitch type** across all days
-    df["GlobalPitchTypeCount"] = df.groupby(["Pitcher", "Pitchtype"]).cumcount() + 1
+    # For each pitcher, pitch type, and date, assign a sequential count,
+    # then compute a group number (1 for first 3 pitches, 2 for next 3, etc.)
+    df_temp["DailyPitchCount"] = df_temp.groupby(['Pitcher', 'Pitchtype', 'Date']).cumcount()
+    df_temp["PitchGroup"] = (df_temp["DailyPitchCount"] // 3) + 1
 
-    # Compute the rolling average **for each pitch type** across all days
-    df["RollingTJStuff+"] = (
-        df.groupby(["Pitcher", "Pitchtype"])["tj_stuff_plus"]
-        .rolling(window=3, min_periods=1)
-        .mean()
-        .reset_index(level=[0, 1], drop=True)
-    )
+    # Aggregate across all days by computing the average tj_stuff_plus for each pitch type and group.
+    df_agg = df_temp.groupby(["Pitcher", "Pitchtype", "PitchGroup"], as_index=False)["tj_stuff_plus"].mean()
 
-    # Plot the results
+    # Create the plot
     fig, ax = plt.subplots(figsize=(10, 6))
-    for pitch_type in df["Pitchtype"].dropna().unique():
-        df_plot = df[df["Pitchtype"] == pitch_type]
-        ax.plot(df_plot["GlobalPitchTypeCount"], df_plot["RollingTJStuff+"], marker="o", label=pitch_type)
+    for pitch_type in df_agg['Pitchtype'].dropna().unique():
+        df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
+        ax.plot(df_plot["PitchGroup"], df_plot["tj_stuff_plus"], marker="o", label=pitch_type)
 
-    # Get pitcher name for title
+    # Use the first pitcher's name for the title (if multiple pitchers, adjust as needed)
     pitcher_name = df["Pitcher"].unique()[0] if "Pitcher" in df.columns else "Selected Pitcher"
-    ax.set_title(f"Rolling 3-Pitch Average of TJStuff+ for {pitcher_name}")
-    ax.set_xlabel("Global Running Count per Pitch Type (All Games)")
-    ax.set_ylabel("Rolling Average TJStuff+")
+    ax.set_title(f"Avg TJStuff+ per 3-Pitch Group for {pitcher_name}")
+    ax.set_xlabel("3-Pitch Group (Resets Each Day)")
+    ax.set_ylabel("Average TJStuff+")
     ax.legend(title="Pitch Type")
 
     st.pyplot(fig)
+
 
 
 
