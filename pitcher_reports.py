@@ -364,6 +364,10 @@ def generate_reports(filtered_df):
     batting_team = filtered_df['Battingteam'].iloc[0] if 'Battingteam' in filtered_df.columns else "UnknownTeam"
     report_date = pd.to_datetime(filtered_df['Date']).min().strftime('%Y-%m-%d') if 'Date' in filtered_df.columns else "UnknownDate"
 
+    overall_top_5 = filtered_df.loc[filtered_df['Delta_run_exp'].abs().nlargest(5).index].copy()
+    overall_top_5.sort_values('Delta_run_exp', ascending=False, inplace=True)
+    overall_top_5['overall_rank'] = range(1, len(overall_top_5) + 1)
+
     fig = plt.figure(figsize=(12, 14))
     fig.patch.set_facecolor('white')
     height_ratios = [0.13, 0.15, 0.3, 0.3, 0.25]
@@ -423,13 +427,13 @@ def generate_reports(filtered_df):
         ax_pitch_rhh = fig.add_subplot(gs[2, i+2])
         ax_pitch_rhh.set_facecolor('white')
         data_rhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'Right')]
-        plot_pitch_scatter(ax_pitch_rhh, data_rhh, custom_cmap, norm, title=pitch_label, overall_top_5=None)
+        plot_pitch_scatter(ax_pitch_rhh, data_rhh, custom_cmap, norm, title=pitch_label, overall_top_5=overall_top_5)
         
         # For Left-handed batters (Row 4)
         ax_pitch_lhh = fig.add_subplot(gs[3, i+2])
         ax_pitch_lhh.set_facecolor('white')
         data_lhh = filtered_df[(filtered_df['Pitchgroup'] == pitch_group) & (filtered_df['Batterside'] == 'Left')]
-        plot_pitch_scatter(ax_pitch_lhh, data_lhh, custom_cmap, norm, overall_top_5=None)
+        plot_pitch_scatter(ax_pitch_lhh, data_lhh, custom_cmap, norm, overall_top_5=overall_top_5)
 
     # Row 5: Bottom row table of aggregated pitch metrics
     ax_bottom = fig.add_subplot(gs[4, :])
