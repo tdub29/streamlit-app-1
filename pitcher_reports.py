@@ -103,7 +103,7 @@ def plot_count_summary_table(ax, df):
         row_data = df_count_summary[df_count_summary["Count"] == row[0]]
         if row_data.empty:
             continue
-        rv_vcenter = float(row_data["RV"].values[0])
+        rv_vcenter = float(row_data["RV/100"].values[0])
         win_vcenter = float(row_data["Win %"].values[0])
         rv_norm = TwoSlopeNorm(vmin=-5, vcenter=rv_vcenter, vmax=10)
         win_norm = TwoSlopeNorm(vmin=0, vcenter=win_vcenter, vmax=100)
