@@ -103,7 +103,7 @@ def plot_count_summary_table(ax, df):
         row_data = df_count_summary[df_count_summary["Count"] == row[0]]
         if row_data.empty:
             continue
-        rv_vcenter = float(row_data["RV/100"].values[0])
+        rv_vcenter = float(row_data["RV"].values[0])
         win_vcenter = float(row_data["Win %"].values[0])
         rv_norm = TwoSlopeNorm(vmin=-5, vcenter=rv_vcenter, vmax=10)
         win_norm = TwoSlopeNorm(vmin=0, vcenter=win_vcenter, vmax=100)
@@ -200,11 +200,11 @@ def plot_pitch_scatter(ax, data, cmap, norm, title=None, overall_top_5=None):
 def compute_bottom_row_summary(df):
     format_map = {
         "P": "{:.0f}", "Usage%": "{:.0f}", "Vel": "{:.1f}", "MaxVel": "{:.1f}",
-        "Stuff+": "{:.1f}", "RV/100": "{:.1f}", "Str%": "{:.0f}", "Comp%": "{:.0f}",
+        "Stuff+": "{:.1f}", "RV": "{:.1f}", "Str%": "{:.0f}", "Comp%": "{:.0f}",
         "zWhiff%": "{:.0f}", "Chase%": "{:.0f}", "Ext": "{:.1f}", "HAA": "{:.1f}",
         "VAA": "{:.1f}", "IVB": "{:.1f}", "HB": "{:.1f}", "RelZ": "{:.1f}", "RelX": "{:.1f}"
     }
-    metrics = ["P", "Usage%", "Vel", "MaxVel", "Stuff+", "RV/100", "Str%", "Comp%",
+    metrics = ["P", "Usage%", "Vel", "MaxVel", "Stuff+", "RV", "Str%", "Comp%",
                "zWhiff%", "Chase%", "Ext", "HAA", "VAA", "IVB", "HB", "RelZ", "RelX"]
     grouped_data = {}
     abbrev_map = {}
