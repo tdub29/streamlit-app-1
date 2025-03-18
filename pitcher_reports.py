@@ -284,7 +284,7 @@ def plot_bottom_row_table(ax, df):
                 elif c in dynamic_cols.values():
                     col_name = [name for name, idx in dynamic_cols.items() if idx == c][0]
                     norm_obj = get_dynamic_norm(pitch_type, dynamic_metrics[col_name])
-                    color = plt.cm.PiYG(norm_obj(value))
+                    color = plt.cm.RdYlGn(norm_obj(value))
                 else:
                     continue
                 cell.set_facecolor(lighten_color(color, amount=0.7))
