@@ -64,7 +64,9 @@ def Trumedia_feature_engineering(df):
         Categorize the pitchResult into a standardized event label.
         Bunt events are ignored (return None).
         """
-        event = event.lower()
+        if event is not None:
+            event = event.lower()
+
         if "bunt" in event or "unknown" in event:
             return None
         elif "single" in event:
