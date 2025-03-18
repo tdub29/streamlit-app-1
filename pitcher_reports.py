@@ -227,9 +227,13 @@ def compute_bottom_row_summary(df):
         comploc_pct = pd.to_numeric(group["Comploc"], errors="coerce").mean() * 100
         
         # Filter in-zone swings and ensure "Swing" is numeric
-        in_zone_swings = group[group["Inzone"]].copy()  # Copy to avoid modifying original DF
-        in_zone_swings["Swing"] = pd.to_numeric(in_zone_swings["Swing"], errors="coerce").fillna(0)
-        in_zone_swings["Whiff"] = pd.to_numeric(in_zone_swings["Whiff"], errors="coerce").fillna(0)
+        # Ensure "Swing" and "Whiff" are numeric
+        group["Swing"] = pd.to_numeric(group["Swing"], errors="coerce").fillna(0)
+        group["Whiff"] = pd.to_numeric(group["Whiff"], errors="coerce").fillna(0)
+        
+        # Filter only in-zone swings
+        in_zone_swings = group[(group["Inzone"]) & (group["Swing"] > 0)].copy()  # Ensure only swings are included
+
         
         # Compute in-zone whiff percentage safely
         whiffs_in_zone = in_zone_swings["Whiff"].sum()
