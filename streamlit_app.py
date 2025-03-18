@@ -1610,7 +1610,7 @@ pages = {
     "Polar Plots - Understanding Tilt": create_polar_plots,
     "Ideal Pitch Locations": plot_ideal_pitch_locations,
     "Raw Data": display_raw_data,
-     "Generate Pitch Reports": generate_pitch_reports_page,  # Add this,
+     "Post-Series Report": generate_pitch_reports_page,  # Add this,
     "Rolling 3-Pitch Averages": lambda: plot_rolling_3_pitch_averages(filtered_data)
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
