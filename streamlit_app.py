@@ -1602,6 +1602,7 @@ def plot_rolling_3_pitch_averages(df):
 st.sidebar.title("Navigation")
 pages = {
     "Post-Series Report": generate_pitch_reports_page,  # Add this,
+    "NEW Stuff and Velo throughout game": lambda: plot_rolling_3_pitch_averages(filtered_data),
     "Pitch Locations - RHH/LHH": plot_pitch_locations,
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
@@ -1610,8 +1611,7 @@ pages = {
     "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
     "Polar Plots - Understanding Tilt": create_polar_plots,
     "Ideal Pitch Locations": plot_ideal_pitch_locations,
-    "Raw Data": display_raw_data,
-    "Rolling 3-Pitch Averages": lambda: plot_rolling_3_pitch_averages(filtered_data)
+    "Raw Data": display_raw_data
 }
 selected_page = st.sidebar.radio("Select Plot", list(pages.keys()))
 
