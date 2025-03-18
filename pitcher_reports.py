@@ -216,16 +216,33 @@ def compute_bottom_row_summary(df):
             grouped_data[pitch_full] = {m: 0.0 for m in metrics}
             continue
         # CHANGED Tj_stuff_plus → tj_stuff_plus
-        avg_stuff_plus = group["tj_stuff_plus"].mean()
-        rv_100 = group["Delta_run_exp"].sum()
-        strike_pct = group["Strike"].mean() * 100
-        comploc_pct = group["Comploc"].mean() * 100
-        in_zone_swings = group[group["Inzone"]]
+        # Ensure "tj_stuff_plus" is treated as numeric
+        avg_stuff_plus = pd.to_numeric(group["tj_stuff_plus"], errors="coerce").mean()
+        
+        # Ensure "Delta_run_exp" is treated as numeric
+        rv_100 = pd.to_numeric(group["Delta_run_exp"], errors="coerce").sum()
+        
+        # Ensure "Strike" and "Comploc" are treated as numeric before calculating means
+        strike_pct = pd.to_numeric(group["Strike"], errors="coerce").mean() * 100
+        comploc_pct = pd.to_numeric(group["Comploc"], errors="coerce").mean() * 100
+        
+        # Filter in-zone swings and ensure "Swing" is numeric
+        in_zone_swings = group[group["Inzone"]].copy()  # Copy to avoid modifying original DF
+        in_zone_swings["Swing"] = pd.to_numeric(in_zone_swings["Swing"], errors="coerce").fillna(0)
+        in_zone_swings["Whiff"] = pd.to_numeric(in_zone_swings["Whiff"], errors="coerce").fillna(0)
+        
+        # Compute in-zone whiff percentage safely
         whiffs_in_zone = in_zone_swings["Whiff"].sum()
         z_whiff_pct = (whiffs_in_zone / len(in_zone_swings) * 100) if len(in_zone_swings) > 0 else 0.0
-        out_of_zone_pitches = group[~group["Inzone"]]
+        
+        # Filter out-of-zone pitches and ensure "Swing" is numeric
+        out_of_zone_pitches = group[~group["Inzone"]].copy()
+        out_of_zone_pitches["Swing"] = pd.to_numeric(out_of_zone_pitches["Swing"], errors="coerce").fillna(0)
+        
+        # Compute chase percentage safely
         out_of_zone_swings = out_of_zone_pitches["Swing"].sum()
         chase_pct = (out_of_zone_swings / len(out_of_zone_pitches) * 100) if len(out_of_zone_pitches) > 0 else 0.0
+
         grouped_data[pitch_full] = {
             "P": total_pitches,
             "Usage%": (total_pitches / len(df)) * 100,
