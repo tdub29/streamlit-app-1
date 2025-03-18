@@ -89,21 +89,21 @@ def plot_count_summary_table(ax, df):
         else:
             total_rv = sub['Delta_run_exp'].sum()
             total_wins = sub['Win'].sum()
-            rv_100 = (total_rv / total_pitches) * 100
+            rv_100 = total_rv
             win_percent = (total_wins / total_pitches) * 100
         table_data.append([cat_name, f"{rv_100:.1f}", f"{win_percent:.0f}", total_pitches])
-    col_labels = ["Count", "RV/100", "Win %", "P"]
+    col_labels = ["Count", "RV", "Win %", "P"]
     table = ax.table(cellText=table_data, colLabels=col_labels, loc="center")
     table.auto_set_font_size(False)
     table.set_fontsize(12)
     table.scale(1.3, 1.2)
-    rv_col_idx = col_labels.index("RV/100")
+    rv_col_idx = col_labels.index("RV")
     win_col_idx = col_labels.index("Win %")
     for r, row in enumerate(table_data):
         row_data = df_count_summary[df_count_summary["Count"] == row[0]]
         if row_data.empty:
             continue
-        rv_vcenter = float(row_data["RV/100"].values[0])
+        rv_vcenter = float(row_data["RV"].values[0])
         win_vcenter = float(row_data["Win %"].values[0])
         rv_norm = TwoSlopeNorm(vmin=-5, vcenter=rv_vcenter, vmax=10)
         win_norm = TwoSlopeNorm(vmin=0, vcenter=win_vcenter, vmax=100)
@@ -119,7 +119,7 @@ def plot_count_summary_table(ax, df):
                         cell.set_facecolor(lighten_color(color, amount=0.7))
                 except ValueError:
                     pass
-    ax.set_title("RV/100, Win% by Count", fontsize=12, pad=10)
+    ax.set_title("RV, Win% by Count", fontsize=12, pad=10)
 
 def plot_logo(ax, logo_path):
     ax.axis('off')
@@ -217,7 +217,7 @@ def compute_bottom_row_summary(df):
             continue
         # CHANGED Tj_stuff_plus → tj_stuff_plus
         avg_stuff_plus = group["tj_stuff_plus"].mean()
-        rv_100 = (group["Delta_run_exp"].sum() / total_pitches) * 100
+        rv_100 = group["Delta_run_exp"].sum()
         strike_pct = group["Strike"].mean() * 100
         comploc_pct = group["Comploc"].mean() * 100
         in_zone_swings = group[group["Inzone"]]
@@ -232,7 +232,7 @@ def compute_bottom_row_summary(df):
             "Vel": group["Relspeed"].mean(),
             "MaxVel": group["Relspeed"].max(),
             "Stuff+": avg_stuff_plus,
-            "RV/100": rv_100,
+            "RV": rv_100,
             "Str%": strike_pct,
             "Comp%": comploc_pct,
             "zWhiff%": z_whiff_pct,
@@ -260,7 +260,7 @@ def plot_bottom_row_table(ax, df):
     table.auto_set_font_size(False)
     table.set_fontsize(12)
     table.scale(1.8, 1.8)
-    rv100_col_idx = col_labels.index("RV/100")
+    rv100_col_idx = col_labels.index("RV")
     stuff_col_idx = col_labels.index("Stuff+")
     dynamic_metrics = {"Str%": "strike_pct", "Comp%": "comploc_pct", "zWhiff%": "z_whiff_pct", "Chase%": "chase_pct"}
     dynamic_cols = {name: col_labels.index(name) for name in dynamic_metrics}
