@@ -1526,65 +1526,55 @@ def generate_pitch_reports_page():
 # -------------------------------
 def plot_rolling_3_pitch_averages(df):
     """
-    Produces two separate plots for every group of 3 pitches for each pitch type.
-    
+    Produces two separate plots, averaging metrics by groups of 10 pitches (PitcherPitchNo intervals).
+
     Process:
-    1. For each pitcher, pitch type, and date, assign a sequential count that resets daily.
-       Then, compute a group number where the first 3 pitches are group 1, the next 3 are group 2, etc.
-    2. Aggregate across days by computing the average tj_stuff_plus and Relspeed for each pitch type and group.
-    3. Create two separate plots:
-       - One showing the average tj_stuff_plus per group.
-       - One showing the average Relspeed per group.
+    1. Group pitches into bins of 10: <=10, 11-20, 21-30, etc.
+    2. Aggregate by computing mean tj_stuff_plus and Relspeed per pitch type for each bin.
+    3. Generate plots for each aggregated metric.
     """
     import pandas as pd
     import matplotlib.pyplot as plt
     import streamlit as st
 
-    # Ensure required columns exist
-    required_cols = ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher", "Date", "Relspeed"]
+    required_cols = ["tj_stuff_plus", "PitcherPitchNo", "Pitchtype", "Pitcher", "Relspeed"]
     if df.empty or not all(col in df.columns for col in required_cols):
         st.write("Required columns not found or no data available.")
         return
 
-    # Convert Date column to datetime and sort data
-    df["Date"] = pd.to_datetime(df["Date"])
-    df_temp = df.copy().sort_values(by=['Pitcher', 'Date', 'PitcherPitchNo'])
+    df_temp = df.copy()
 
-    # For each pitcher, pitch type, and date, assign a daily sequential count
-    df_temp["DailyPitchCount"] = df_temp.groupby(['Pitcher', 'Pitchtype', 'Date']).cumcount()
-    # Create a group number: 1 for pitches 0-2, 2 for pitches 3-5, etc.
-    df_temp["PitchGroup"] = (df_temp["DailyPitchCount"] // 3) + 1
+    # Define pitch group intervals (10-pitch increments)
+    df_temp["PitchGroup"] = ((df_temp["PitcherPitchNo"] - 1) // 10 + 1) * 10
 
-    # Aggregate across days by computing the mean for each pitch type and group
+    # Aggregate means per group
     df_agg = df_temp.groupby(["Pitcher", "Pitchtype", "PitchGroup"], as_index=False).agg({
         "tj_stuff_plus": "mean",
         "Relspeed": "mean"
     })
 
-    # Use the first pitcher's name for the title (adjust if needed for multiple pitchers)
-    pitcher_name = df["Pitcher"].unique()[0] if "Pitcher" in df.columns else "Selected Pitcher"
+    pitcher_name = df["Pitcher"].iloc[0] if "Pitcher" in df.columns else "Selected Pitcher"
 
-    # Plot for tj_stuff_plus
+    # Plot tj_stuff_plus
     fig1, ax1 = plt.subplots(figsize=(10, 6))
     for pitch_type in df_agg['Pitchtype'].dropna().unique():
         df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
         ax1.plot(df_plot["PitchGroup"], df_plot["tj_stuff_plus"], marker="o", label=pitch_type)
-    ax1.set_title(f"Avg TJStuff+ per 3-Pitch Group for {pitcher_name}")
-    ax1.set_xlabel("3-Pitch Group (Resets Each Day)")
+    ax1.set_title(f"Avg TJStuff+ per 10-Pitch Group for {pitcher_name}")
+    ax1.set_xlabel("PitcherPitchNo Interval")
     ax1.set_ylabel("Average TJStuff+")
     ax1.legend(title="Pitch Type")
 
-    # Plot for Relspeed
+    # Plot Relspeed
     fig2, ax2 = plt.subplots(figsize=(10, 6))
     for pitch_type in df_agg['Pitchtype'].dropna().unique():
         df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
         ax2.plot(df_plot["PitchGroup"], df_plot["Relspeed"], marker="o", label=pitch_type)
-    ax2.set_title(f"Avg Relspeed per 3-Pitch Group for {pitcher_name}")
-    ax2.set_xlabel("3-Pitch Group (Resets Each Day)")
+    ax2.set_title(f"Avg Relspeed per 10-Pitch Group for {pitcher_name}")
+    ax2.set_xlabel("PitcherPitchNo Interval")
     ax2.set_ylabel("Average Relspeed")
     ax2.legend(title="Pitch Type")
 
-    # Display both plots separately
     st.pyplot(fig1)
     st.pyplot(fig2)
 
