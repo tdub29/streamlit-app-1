@@ -538,8 +538,14 @@ p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-
 trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
 Trumediadf = pd.read_csv(trufilepath)
 
+# Ensure p_guys_df['gameDate'] is datetime
+p_guys_df['gameDate'] = pd.to_datetime(p_guys_df['gameDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
+
+# Ensure Trumediadf['gameDate'] is datetime
+Trumediadf['gameDate'] = pd.to_datetime(Trumediadf['gameDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
+
 # # Combine them into Trumediadf
-# Trumediadf = pd.concat([p_guys_df, Trumediadf], ignore_index=True)
+Trumediadf = pd.concat([p_guys_df, Trumediadf], ignore_index=True)
 
 
 Trumediadf['Source'] = 'InSeason'
@@ -725,7 +731,36 @@ trudf_for_model = trudf_for_model.rename(columns={
     "Xwhiff": "xWhiff"
 
 })
-trudf_for_model['Date'] = pd.to_datetime(trudf_for_model['Date'], errors='coerce').dt.date
+
+
+
+
+# 1. Create a new column to store parsed datetime
+trudf_for_model['parsed_datetime'] = pd.NaT
+
+# 2. Mask each source
+mask_pguys = trudf_for_model['Insznsource'] == 'p_guys'
+mask_trumedia = trudf_for_model['Insznsource'] == 'trumedia'
+
+# 3. Parse separately
+trudf_for_model.loc[mask_pguys, 'parsed_datetime'] = pd.to_datetime(
+    trudf_for_model.loc[mask_pguys, 'Date'],
+    format='%m/%d/%Y %H:%M',
+    errors='coerce'
+)
+
+trudf_for_model.loc[mask_trumedia, 'parsed_datetime'] = pd.to_datetime(
+    trudf_for_model.loc[mask_trumedia, 'Date'],
+    format='%Y-%m-%d %H:%M:%S',
+    errors='coerce'
+)
+
+# 4. Then extract date (safe to use .dt now)
+trudf_for_model['Date'] = trudf_for_model['parsed_datetime'].dt.date
+
+# Optional: drop the temporary column
+trudf_for_model.drop(columns=['parsed_datetime'], inplace=True)
+
 
 trudf_for_model[['Relheight', 'Relside']] /= 12
 trudf_for_model['Batterside'] = trudf_for_model['Batterside'].map({'R': 'Right', 'L': 'Left'})
