@@ -536,10 +536,10 @@ p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-
 
 # Load USDPITCHINGYTD.csv
 trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
-usd_pitching_df = pd.read_csv(trufilepath)
+Trumediadf = pd.read_csv(trufilepath)
 
-# Combine them into Trumediadf
-Trumediadf = pd.concat([p_guys_df, usd_pitching_df], ignore_index=True)
+# # Combine them into Trumediadf
+# Trumediadf = pd.concat([p_guys_df, usd_pitching_df], ignore_index=True)
 
 
 Trumediadf['Source'] = 'InSeason'
@@ -677,11 +677,11 @@ trumedia_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-ap
 # 2) Rename 'pitcherAbbrevName' to 'pitcherabbrevname'
 trumedia_df.rename(columns={"pitcherAbbrevName": "pitcherabbrevname"}, inplace=True)
 
-# 3) Load the second CSV
-p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/p_guys.csv")
+# # 3) Load the second CSV
+# p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/p_guys.csv")
 
-# 4) Append second dataframe to the first
-trumedia_df = pd.concat([trumedia_df, p_guys_df], ignore_index=True)
+# # 4) Append second dataframe to the first
+# trumedia_df = pd.concat([trumedia_df, p_guys_df], ignore_index=True)
 
 # 3) Drop 'Pitcher' from 'trudf_for_model' if it already exists
 if "pitcher" in trudf_for_model.columns:
