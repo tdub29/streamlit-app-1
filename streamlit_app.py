@@ -539,7 +539,7 @@ trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/hea
 Trumediadf = pd.read_csv(trufilepath)
 
 # # Combine them into Trumediadf
-# Trumediadf = pd.concat([p_guys_df, usd_pitching_df], ignore_index=True)
+Trumediadf = pd.concat([p_guys_df, usd_pitching_df], ignore_index=True)
 
 
 Trumediadf['Source'] = 'InSeason'
