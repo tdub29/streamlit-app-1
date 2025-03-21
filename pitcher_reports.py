@@ -383,7 +383,14 @@ def generate_reports(filtered_df):
     
     pitcher = filtered_df['Pitcher'].iloc[0] if 'Pitcher' in filtered_df.columns else "UnknownPitcher"
     batting_team = filtered_df['Battingteam'].iloc[0] if 'Battingteam' in filtered_df.columns else "UnknownTeam"
-    report_date = pd.to_datetime(filtered_df['Date'], format='%Y%m%d', errors='coerce').min().strftime('%m/%d/%Y')
+    # First safely parse dates (without format to auto-detect), then get first valid date
+    parsed_dates = pd.to_datetime(filtered_df['Date'], errors='coerce').dropna()
+    
+    if not parsed_dates.empty:
+        report_date = parsed_dates.dt.strftime('%Y-%m-%d').iloc[0]
+    else:
+        report_date = 'Unknown Date'
+
 
 
     overall_top_5 = filtered_df.loc[filtered_df['Delta_run_exp'].abs().nlargest(5).index].copy()
