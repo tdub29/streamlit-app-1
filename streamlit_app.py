@@ -529,9 +529,15 @@ df.drop_duplicates(subset=['PitchUID'], inplace=True)
 # Standardize column capitalization
 df.columns = [col.strip().capitalize() for col in df.columns]
 
-trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
+# Load p_guys.csv
+p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/p_guys.csv")
 
-Trumediadf = pd.read_csv(trufilepath)
+# Load USDPITCHINGYTD.csv
+trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
+usd_pitching_df = pd.read_csv(trufilepath)
+
+# Combine them into Trumediadf
+Trumediadf = pd.concat([p_guys_df, usd_pitching_df], ignore_index=True)
 
 
 Trumediadf['Source'] = 'InSeason'
