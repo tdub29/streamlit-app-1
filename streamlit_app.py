@@ -663,11 +663,17 @@ if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
 
 import pandas as pd
 
-# 1) Load CSV file
+# 1) Load the first CSV
 trumedia_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/trumediatotrackmannamejoin.csv")
 
-# 2) Rename pitcherAbbrevName to pitcherabbrevname in 'trumedia_df'
+# 2) Rename 'pitcherAbbrevName' to 'pitcherabbrevname'
 trumedia_df.rename(columns={"pitcherAbbrevName": "pitcherabbrevname"}, inplace=True)
+
+# 3) Load the second CSV
+p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/p_guys.csv")
+
+# 4) Append second dataframe to the first
+trumedia_df = pd.concat([trumedia_df, p_guys_df], ignore_index=True)
 
 # 3) Drop 'Pitcher' from 'trudf_for_model' if it already exists
 if "pitcher" in trudf_for_model.columns:
