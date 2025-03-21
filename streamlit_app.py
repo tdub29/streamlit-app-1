@@ -270,7 +270,8 @@ def Trumedia_feature_engineering(df):
 
     # Convert True/False → 1/0
     df_joined["inning_leadoff"] = df_joined["inning_leadoff"].astype(int)
-    df_joined["inning_leadoff_success"] = df_joined["inning_leadoff_success"].astype(int)
+    df_joined["inning_leadoff_success"] = df_joined["inning_leadoff_success"].fillna(0).astype(int)
+
 
     df_joined['Taggedpitchtype'] = df_joined['pitchTypeFull']
     df_joined['Autopitchtype'] = df_joined['pitchTypeFull']
