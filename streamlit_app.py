@@ -207,7 +207,8 @@ def Trumedia_feature_engineering(df):
     # -------------------------------
     # 12. Convert gameDate to datetime
     # -------------------------------
-    df_joined['gameDate'] = pd.to_datetime(df_joined['gameDate'])
+    df_joined['gameDate'] = pd.to_datetime(df_joined['gameDate'], errors='coerce')
+
 
     # -------------------------------
     # 13. Clean pitchResult, abbreviate
