@@ -549,6 +549,10 @@ p_guys_df['gameDate'] = pd.to_datetime(p_guys_df['gameDate']).dt.strftime('%Y-%m
 # Ensure Trumediadf['gameDate'] is datetime
 Trumediadf['gameDate'] = pd.to_datetime(Trumediadf['gameDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
 
+# Add 'insznsource' column to identify the source of each row
+p_guys_df['insznsource'] = 'p_guys'
+Trumediadf['insznsource'] = 'trumedia'
+
 # # Combine them into Trumediadf
 Trumediadf = pd.concat([p_guys_df, Trumediadf], ignore_index=True)
 
