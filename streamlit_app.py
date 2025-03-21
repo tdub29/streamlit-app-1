@@ -1560,8 +1560,8 @@ def plot_rolling_3_pitch_averages(df):
     for pitch_type in df_agg['Pitchtype'].dropna().unique():
         df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
         ax1.plot(df_plot["PitchGroup"], df_plot["tj_stuff_plus"], marker="o", label=pitch_type)
-    ax1.set_title(f"Avg TJStuff+ per 10-Pitch Group for {pitcher_name}")
-    ax1.set_xlabel("PitcherPitchNo Interval")
+    ax1.set_title(f"Avg TJStuff+ by Pitch Count for {pitcher_name}")
+    ax1.set_xlabel("Pitch Count")
     ax1.set_ylabel("Average TJStuff+")
     ax1.legend(title="Pitch Type")
 
@@ -1570,8 +1570,8 @@ def plot_rolling_3_pitch_averages(df):
     for pitch_type in df_agg['Pitchtype'].dropna().unique():
         df_plot = df_agg[df_agg['Pitchtype'] == pitch_type].sort_values("PitchGroup")
         ax2.plot(df_plot["PitchGroup"], df_plot["Relspeed"], marker="o", label=pitch_type)
-    ax2.set_title(f"Avg Relspeed per 10-Pitch Group for {pitcher_name}")
-    ax2.set_xlabel("PitcherPitchNo Interval")
+    ax2.set_title(f"Avg Relspeed by Pitch Count for {pitcher_name}")
+    ax2.set_xlabel("Pitch Count")
     ax2.set_ylabel("Average Relspeed")
     ax2.legend(title="Pitch Type")
 
