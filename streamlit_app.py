@@ -1110,7 +1110,7 @@ import streamlit as st
 # Function to create break plot with in-place pitch type classification
 def create_break_plot2():
     # Assume that 'filtered_data' and 'color_map' are defined globally.
-    data = filtered_data.copy()
+    data = filtered_data
     
     # Define platoon using Pitcherthrows and Batterside
     data['platoon'] = np.where(data['Pitcherthrows'] == data['Batterside'], 0, 1)
