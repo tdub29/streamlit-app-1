@@ -1222,6 +1222,16 @@ def create_break_plot2():
                 pitch_name = 'Movement-Based Changeup'
 
         data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
+        
+        if pitch_name == 'Curveball':
+            if group['hb'] > 5 and group['ivb'] > 5:  # suspiciously non-curve
+                print(f"[CHECK] Pitch_type {pitch_type} classified as Curveball, but has HB={group['hb']:.1f}, IVB={group['ivb']:.1f}, Velo={group['velo']:.1f}")
+                print(f"→ Closest distance: {distances[min_index]:.2f}")
+                print(f"→ Raw distances: {distances}")
+
+
+
+    
 
         # if pitch_name in ['Riding Fastball', 'Fastball']:
         #     pitch_archetypes = np.delete(pitch_archetypes, [0, 1], axis=0)
