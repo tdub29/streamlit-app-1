@@ -1204,7 +1204,9 @@ def create_break_plot2():
             data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
             continue
 
-        distances = np.linalg.norm(pitch_archetypes - pitch_shape, axis=1)
+        weights = np.array([2.0, 2.0, 1.0])  # emphasize movement
+        distances = np.linalg.norm((pitch_archetypes - pitch_shape) * weights, axis=1)
+
         min_index = np.argmin(distances)
         pitch_name = pitch_names[min_index]
 
