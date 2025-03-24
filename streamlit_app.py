@@ -874,20 +874,40 @@ df['PitcherPitchNo'] = df.groupby(['Pitcher', 'Date']).cumcount() + 1
 pitch_types = df['Pitchtype'].unique()
 palette = sns.color_palette('Set2', len(pitch_types))
 color_map = {
-        'Fastball': '#1f77b4',  # Blue
-        'TwoSeamFastBall': '#1f77b4',  # Blue
-        'Slider': '#ff7f0e',    # Orange
-        'Curveball': '#2ca02c', # Green
-        'ChangeUp': '#d62728',  # Red
-        'Changeup': '#d62728',  # Red
-        'Cutter': '#9467bd',    # Purple
-        'Sinker': '#8c564b',    # Brown
-        'Splitter': '#e377c2',  # Pink
-        'Knuckleball': '#7f7f7f', # Gray
-        'Other': '#7f7f7f', # Gray
-        'Undefined': '#7f7f7f',
-        'FourSeamFastBall': '#1f77b4'
-    }
+    # Fastballs (blue shades)
+    'Fastball': '#1f77b4',
+    'TwoSeamFastBall': '#1f77b4',
+    'FourSeamFastBall': '#1f77b4',
+    'Riding Fastball': '#3399cc',
+    'Cutter': '#5DA5DA',
+
+    # Sliders (reds)
+    'Slider': '#d62728',
+    'Gyro Slider': '#e74c3c',
+    'Two-Plane Slider': '#ff6f61',
+    'Sweeper': '#ff9999',
+
+    # Curveballs (purples)
+    'Curveball': '#9467bd',
+    'Slurve': '#a678b3',
+    'Slow Curve': '#cba0e3',
+
+    # Sinkers (greens)
+    'Sinker': '#2ca02c',
+
+    # Changeups (browns)
+    'ChangeUp': '#8c564b',
+    'Changeup': '#8c564b',
+    'Movement-Based Changeup': '#a9746e',
+    'Velo-Based Changeup': '#c19a6b',
+
+    # Splitters, Knucks, Other
+    'Splitter': '#e377c2',
+    'Knuckleball': '#7f7f7f',
+    'Other': '#7f7f7f',
+    'Undefined': '#7f7f7f'
+}
+
 
 # ------------------------------------
 #  STREAMLIT SIDEBAR FILTERS (REPLACE)
