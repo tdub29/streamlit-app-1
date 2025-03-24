@@ -1121,7 +1121,7 @@ def create_break_plot2():
         Count=('Relspeed', 'count'),
         velo=('Relspeed', 'mean'),
         hb=('Horzbreak', 'mean'),
-        ivb=('Indvertbreak', 'mean'),
+        ivb=('Inducedvertbreak', 'mean'),
         platoon=('platoon', 'mean')
     ).sort_values(by='Count', ascending=False)
     
