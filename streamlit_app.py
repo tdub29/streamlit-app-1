@@ -1132,13 +1132,10 @@ def create_break_plot2():
     global filtered_data
     data = filtered_data.copy()
 
-    # Flip Horzbreak for lefties to normalize movement
-    data['Horzbreak_adj'] = np.where(data['Pitcherthrows'] == 'Left', -data['Horzbreak'], data['Horzbreak'])
-    
-    # Define platoon
+    # Define platoon using Pitcherthrows and Batterside
     data['platoon'] = np.where(data['Pitcherthrows'] == data['Batterside'], 0, 1)
 
-    # Aggregate by pitch type
+    # Aggregate by pitch type using adjusted horzbreak
     pitch_type_df = data.groupby('Pitch_type').agg(
         Count=('Relspeed', 'count'),
         velo=('Relspeed', 'mean'),
@@ -1147,7 +1144,6 @@ def create_break_plot2():
         platoon=('platoon', 'mean')
     ).sort_values(by='Count', ascending=False)
 
-    # Get FF baseline
     try:
         ff_baseline = pitch_type_df.loc['FF']
     except KeyError:
@@ -1168,7 +1164,7 @@ def create_break_plot2():
                     data['true_pitch_type'] = np.nan
                     filtered_data['true_pitch_type'] = np.nan
                     return
-    
+
     try:
         si_baseline = pitch_type_df.loc['SI']
     except KeyError:
@@ -1180,65 +1176,68 @@ def create_break_plot2():
     baseline_debug = f"FF baseline = HB:{ffh:.1f}, IVB:{ffv:.1f}, Velo:{ffvel:.1f} | SI baseline = HB:{sih:.1f}, IVB:{siv:.1f}, Velo:{sivel:.1f}"
 
     pitch_archetypes = np.array([
-        [ffh, 18, ffvel],           # Riding Fastball
-        [ffh, 11, ffvel],           # Fastball
-        [sih, siv, sivel],          # Sinker
-        [-3, 8, ffvel - 3],         # Cutter
-        [-3, 0, ffvel - 9],         # Gyro Slider
-        [-8, 0, ffvel - 11],        # Two-Plane Slider
-        [-16, 1, ffvel - 14],       # Sweeper
-        [-16, -6, ffvel - 15],      # Slurve
-        [-8, -12, ffvel - 16],      # Curveball
-        [-8, -12, ffvel - 22],      # Slow Curve
-        [sih, siv - 2, sivel - 4],  # Movement-Based Changeup
-        [sih, siv - 2, sivel - 10], # Velo-Based Changeup
+        [ffh, 18, ffvel],
+        [ffh, 11, ffvel],
+        [sih, siv, sivel],
+        [-3, 8, ffvel - 3],
+        [-3, 0, ffvel - 9],
+        [-8, 0, ffvel - 11],
+        [-16, 1, ffvel - 14],
+        [-16, -6, ffvel - 15],
+        [-8, -12, ffvel - 16],
+        [-8, -12, ffvel - 22],
+        [sih, siv - 2, sivel - 4],
+        [sih, siv - 2, sivel - 10],
     ])
 
     pitch_names = np.array([
         'Riding Fastball', 'Fastball', 'Sinker', 'Cutter', 'Gyro Slider', 'Two-Plane Slider',
-        'Sweeper', 'Slurve', 'Curveball', 'Slow Curve', 'Movement-Based Changeup', 
-        'Velo-Based Changeup', 'Knuckleball'
+        'Sweeper', 'Slurve', 'Curveball', 'Slow Curve', 'Movement-Based Changeup',
+        'Velo-Based Changeup'
     ])
 
-    for pitch_type, group in pitch_type_df.iterrows():
-        pitch_shape = np.array([group['hb'], group['ivb'], group['velo']])
-        if pitch_type == 'KN':
-            pitch_name = 'Knuckleball'
-            data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
-            continue
+    weights = np.array([3.0, 3.0, 0.5])
 
-        weights = np.array([3.0, 3.0, 0.5])
-        distances = np.linalg.norm((pitch_archetypes - pitch_shape) * weights, axis=1)
-        min_index = np.argmin(distances)
-        pitch_name = pitch_names[min_index]
+    def classify_pitch(row):
+        hb_adj = -row['Horzbreak'] if row['Pitcherthrows'] == 'Left' else row['Horzbreak']
+        vec = np.array([hb_adj, row['Inducedvertbreak'], row['Relspeed']])
+        dists = np.linalg.norm((pitch_archetypes - vec) * weights, axis=1)
+        idx = np.argmin(dists)
+        name = pitch_names[idx]
 
-        if pitch_name in ['Movement-Based Changeup', 'Velo-Based Changeup']:
-            if pitch_name == 'Movement-Based Changeup' and sivel - pitch_shape[2] > 6:
-                pitch_name = 'Velo-Based Changeup'
-            elif pitch_name == 'Velo-Based Changeup' and sivel - pitch_shape[2] <= 6:
-                pitch_name = 'Movement-Based Changeup'
+        if name in ['Movement-Based Changeup', 'Velo-Based Changeup']:
+            if name == 'Movement-Based Changeup' and sivel - vec[2] > 6:
+                name = 'Velo-Based Changeup'
+            elif name == 'Velo-Based Changeup' and sivel - vec[2] <= 6:
+                name = 'Movement-Based Changeup'
 
-        data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
+        if name == 'Curveball' and row['Horzbreak'] > 5 and row['Inducedvertbreak'] > 5:
+            print(f"[CHECK] Misclassified Curveball? HB={row['Horzbreak']:.1f}, IVB={row['Inducedvertbreak']:.1f}, Velo={row['Relspeed']:.1f}")
+            print(f"→ Closest distance: {dists[idx]:.2f}")
+            print(f"→ Raw distances: {dists}")
 
-        if pitch_name == 'Curveball' and group['hb'] > 5 and group['ivb'] > 5:
-            print(f"[CHECK] {pitch_type} looks suspicious as Curveball | HB: {group['hb']:.1f}, IVB: {group['ivb']:.1f}, Velo: {group['velo']:.1f}")
-            print(f"→ Closest distance: {distances[min_index]:.2f}")
-            print(f"→ Raw distances: {distances}")
+        return name
 
-    # Write classification back
+    data['true_pitch_type'] = data.apply(classify_pitch, axis=1)
     filtered_data['true_pitch_type'] = data['true_pitch_type']
 
-    # Plot
+    filtered_data['Horzbreak_plot'] = np.where(
+        filtered_data['Pitcherthrows'] == 'Left',
+        -filtered_data['Horzbreak'],
+        filtered_data['Horzbreak']
+    )
+
     fig, ax = plt.subplots(figsize=(10, 10))
     sns.scatterplot(
         data=filtered_data,
-        x='Horzbreak',
+        x='Horzbreak_plot',
         y='Inducedvertbreak',
         hue='true_pitch_type',
         palette=color_map,
         s=100,
         edgecolor='black'
     )
+
     ax.axvline(0, color='grey', linestyle='--')
     ax.axhline(0, color='grey', linestyle='--')
     ax.set_xlim(-25, 25)
@@ -1254,13 +1253,8 @@ def create_break_plot2():
 
     ax.set_title(f'Pitch Shape Classification\n{baseline_debug}', fontsize=12)
 
-    # Arm angle vector
-    if (
-        not filtered_data.empty and
-        'armangle_prediction' in filtered_data.columns and
-        filtered_data['armangle_prediction'].notna().all()
-    ):
-        avg_horz_break = filtered_data['Horzbreak'].mean()
+    if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns and filtered_data['armangle_prediction'].notna().all():
+        avg_horz_break = filtered_data['Horzbreak_plot'].mean()
         avg_arm_angle = filtered_data['armangle_prediction'].mean()
         angle_rad = np.radians(avg_arm_angle)
         direction_sign = 1 if avg_horz_break >= 0 else -1
@@ -1271,13 +1265,18 @@ def create_break_plot2():
         x_label = 1 if direction_sign > 0 else -1
         ha_label = 'left' if direction_sign > 0 else 'right'
         ax.text(x_label, -0.5, f'Arm Angle = ~ {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
-
-        theta1 = 0 if direction_sign > 0 else 180 - avg_arm_angle
-        theta2 = avg_arm_angle if direction_sign > 0 else 180
+        from matplotlib.patches import Arc
+        if direction_sign > 0:
+            theta1 = 0
+            theta2 = avg_arm_angle
+        else:
+            theta1 = 180 - avg_arm_angle
+            theta2 = 180
         arc = Arc((0, 0), width=10, height=10, angle=0, theta1=theta1, theta2=theta2, color='blue', alpha=0.5)
         ax.add_patch(arc)
 
     st.pyplot(fig)
+
 
 
 
