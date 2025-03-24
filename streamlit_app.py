@@ -1198,8 +1198,8 @@ def create_break_plot2():
         [-16, -6, ffvel - 15],      # Slurve
         [-8, -12, ffvel - 16],      # Curveball
         [-8, -12, ffvel - 22],      # Slow Curve
-        [sih, siv - 2, sivel - 4],  # Movement-Based Changeup
-        [sih, siv - 2, sivel - 10], # Velo-Based Changeup
+        [sih, siv + 2, sivel + 4],  # Movement-Based Changeup
+        [sih, siv + 2, sivel + 10], # Velo-Based Changeup
     ])
 
     pitch_names = np.array([
