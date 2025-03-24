@@ -1223,12 +1223,12 @@ def create_break_plot2():
 
         data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
 
-        if pitch_name in ['Riding Fastball', 'Fastball']:
-            pitch_archetypes = np.delete(pitch_archetypes, [0, 1], axis=0)
-            pitch_names = np.delete(pitch_names, [0, 1], axis=0)
-        else:
-            pitch_archetypes = np.delete(pitch_archetypes, min_index, axis=0)
-            pitch_names = np.delete(pitch_names, min_index, axis=0)
+        # if pitch_name in ['Riding Fastball', 'Fastball']:
+        #     pitch_archetypes = np.delete(pitch_archetypes, [0, 1], axis=0)
+        #     pitch_names = np.delete(pitch_names, [0, 1], axis=0)
+        # else:
+        #     pitch_archetypes = np.delete(pitch_archetypes, min_index, axis=0)
+        #     pitch_names = np.delete(pitch_names, min_index, axis=0)
     
     filtered_data['true_pitch_type'] = data['true_pitch_type']
     
