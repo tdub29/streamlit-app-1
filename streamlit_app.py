@@ -1174,6 +1174,9 @@ def create_break_plot2():
     
     _, ffvel, ffh, ffv, _ = ff_baseline
     _, sivel, sih, siv, _ = si_baseline
+
+    baseline_debug = f"FF baseline = HB:{ffh:.1f}, IVB:{ffv:.1f}, Velo:{ffvel:.1f} | SI baseline = HB:{sih:.1f}, IVB:{siv:.1f}, Velo:{sivel:.1f}"
+
     
     # Define pitch archetypes: each row is [hb, ivb, velo]
     pitch_archetypes = np.array([
@@ -1254,6 +1257,8 @@ def create_break_plot2():
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
     ax.text(glove_side_x, -23, 'Glove Side', fontsize=12, ha='center', va='center',
             bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+    ax.set_title(f'Pitch Shape Classification\n{baseline_debug}', fontsize=12)
+
     
     if (not filtered_data.empty and 
         'armangle_prediction' in filtered_data.columns and 
