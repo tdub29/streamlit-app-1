@@ -1217,9 +1217,28 @@ def create_break_plot2():
         # Movement only for primary classification
         shape = np.array([group['hb'], group['ivb']])
         movement_archetypes = pitch_archetypes[:, :2]
+        # Exclude movement-based and velo-based changeup candidates if HB is glove side
+        exclude_changeup = group['hb'] < 0
+        valid_indexes = np.arange(len(pitch_archetypes))
+        
+        if exclude_changeup:
+            # Indices 10 and 11 are changeups
+            valid_indexes = valid_indexes[~np.isin(valid_indexes, [10, 11])]
+        
+        # Compute movement-only distances
+        movement_archetypes = pitch_archetypes[valid_indexes][:, :2]
         movement_dists = np.linalg.norm(movement_archetypes - shape, axis=1)
-
+        
+        # Get index of closest
         min_indexes = np.where(np.isclose(movement_dists, movement_dists.min(), atol=0.1))[0]
+        
+        if len(min_indexes) == 1:
+            chosen_index = valid_indexes[min_indexes[0]]
+        else:
+            tied = pitch_archetypes[valid_indexes[min_indexes]]
+            vel_dists = np.abs(tied[:, 2] - group['velo'])
+            chosen_index = valid_indexes[min_indexes[np.argmin(vel_dists)]]
+
 
         if len(min_indexes) == 1:
             chosen_index = min_indexes[0]
