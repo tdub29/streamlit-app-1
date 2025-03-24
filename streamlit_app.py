@@ -1204,7 +1204,9 @@ def create_break_plot2():
             data.loc[data['Pitch_type'] == pitch_type, 'true_pitch_type'] = pitch_name
             continue
 
-        weights = np.array([2.0, 2.0, 1.0])  # emphasize movement
+        # Put much more weight on movement, very little on velo
+        weights = np.array([3.0, 3.0, 0.5])
+
         distances = np.linalg.norm((pitch_archetypes - pitch_shape) * weights, axis=1)
 
         min_index = np.argmin(distances)
