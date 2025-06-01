@@ -543,18 +543,25 @@ p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-
 trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
 Trumediadf = pd.read_csv(trufilepath)
 
-# Ensure p_guys_df['gameDate'] is datetime
-p_guys_df['gameDate'] = pd.to_datetime(p_guys_df['gameDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
+p_guys_df['gameDate'] = pd.to_datetime(
+    p_guys_df['gameDate'],
+    format='%Y-%m-%d %H:%M:%S',
+    errors='coerce'
+)
 
-# Ensure Trumediadf['gameDate'] is datetime
-Trumediadf['gameDate'] = pd.to_datetime(Trumediadf['gameDate']).dt.strftime('%Y-%m-%d %H:%M:%S')
+# Trumediadf
+Trumediadf['gameDate'] = pd.to_datetime(
+    Trumediadf['gameDate'],
+    format='%Y-%m-%d %H:%M:%S',
+    errors='coerce'
+)
 
 # Add 'insznsource' column to identify the source of each row
 p_guys_df['insznsource'] = 'p_guys'
 Trumediadf['insznsource'] = 'trumedia'
 
 # # Combine them into Trumediadf
-Trumediadf = pd.concat([p_guys_df, Trumediadf], ignore_index=True)
+# Trumediadf = pd.concat([p_guys_df, Trumediadf], ignore_index=True)
 
 
 Trumediadf['Source'] = 'InSeason'
