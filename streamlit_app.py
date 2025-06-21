@@ -1638,7 +1638,7 @@ def calculate_pitch_metrics(pitcher_data):
 
     # We now group on both Pitcher and Pitchtype, so each row in the final DF
     # corresponds to that unique combination.
-    grouped = pitcher_data.groupby(['Pitcher', 'Pitchtype'])
+    grouped = pitcher_data.groupby(['Pitcherabbrevname', 'Pitchtype'])
 
     # Count total pitches in each (Pitcher,Pitchtype)
     pitch_type_counts = grouped.size().rename('Count')
@@ -1669,7 +1669,7 @@ def calculate_pitch_metrics(pitcher_data):
     # Identify strikes using the 'Strike' column
     strikes = pitcher_data[pitcher_data['Strike']]
     # Count strikes by (Pitcher, Pitchtype)
-    strikes_count = strikes.groupby(['Pitcher', 'Pitchtype']).size()
+    strikes_count = strikes.groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     # Compute strike percentage
     strike_percentages = (strikes_count / pitch_type_counts * 100).rename('Strike %').round(1)
 
@@ -1677,31 +1677,31 @@ def calculate_pitch_metrics(pitcher_data):
     # WHIFF %
     # -------------------
     # Compute whiff percentage as: (Number of whiffs) / (Number of swings) * 100
-    swinging_strikes = pitcher_data[pitcher_data['Whiff']].groupby(['Pitcher', 'Pitchtype']).size()
-    total_swings = pitcher_data[pitcher_data['Swing']].groupby(['Pitcher', 'Pitchtype']).size()
+    swinging_strikes = pitcher_data[pitcher_data['Whiff']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
+    total_swings = pitcher_data[pitcher_data['Swing']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').fillna(0).round(1)
     
     # -------------------
     # INZONE %
     # -------------------
     # Compute in-zone percentage as: (Number of in-zone pitches) / (Total pitches) * 100
-    in_zone_counts = pitcher_data[pitcher_data['Inzone']].groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_counts = pitcher_data[pitcher_data['Inzone']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     in_zone_percentage = (in_zone_counts / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
     
     # -------------------
     # INZONE WHIFF %
     # -------------------
     # Compute in-zone whiff percentage as: (Number of whiffs in-zone) / (Number of swings in-zone) * 100
-    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Whiff'])].groupby(['Pitcher', 'Pitchtype']).size()
-    in_zone_swings = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcher', 'Pitchtype']).size()
+    in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Whiff'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
+    in_zone_swings = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').fillna(0).round(1)
     
     # -------------------
     # CHASE %
     # -------------------
     # Here we define 'Chase %' as the percentage of out-of-zone swings.
-    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcher', 'Pitchtype']).size()
-    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby(['Pitcher', 'Pitchtype']).size()
+    out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
+    total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
     # -------------------
     # xWHIFF %
@@ -1724,7 +1724,7 @@ def calculate_pitch_metrics(pitcher_data):
     # COMPLOC %
     # -------------------
     comp_data = pitcher_data[pitcher_data['Comploc']]
-    comp_counts = comp_data.groupby(['Pitcher', 'Pitchtype']).size()
+    comp_counts = comp_data.groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     comploc_percentage = (
         comp_counts / pitch_type_counts * 100
     ).rename('CompLoc %').fillna(0).round(1)
