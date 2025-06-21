@@ -1126,6 +1126,90 @@ def create_break_plot():
 
     st.pyplot(fig)
 
+def create_break_stuff_plot():
+    from matplotlib.colors import Normalize
+    import matplotlib.cm as cm
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    # Normalize tj_stuff_plus for color mapping
+    norm = Normalize(vmin=70, vmax=130)
+    cmap = plt.get_cmap('RdBu_r')
+
+    # Scatter plot colored by tj_stuff_plus
+    sc = ax.scatter(
+        filtered_data['Horzbreak'],
+        filtered_data['Inducedvertbreak'],
+        c=filtered_data['tj_stuff_plus'],
+        cmap=cmap,
+        norm=norm,
+        s=100,
+        edgecolor='black'
+    )
+
+    ax.axvline(0, color='grey', linestyle='--')
+    ax.axhline(0, color='grey', linestyle='--')
+    ax.set_xlim(-25, 25)
+    ax.set_ylim(-25, 25)
+    
+    pitcher_throws = filtered_data['Pitcherthrows'].iloc[0]
+    arm_side_x, glove_side_x = (20, -20) if pitcher_throws == 'Right' else (-20, 20)
+    
+    ax.text(arm_side_x, -23, 'Arm Side', fontsize=12, verticalalignment='center', horizontalalignment='center',
+            bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+    ax.text(glove_side_x, -23, 'Glove Side', fontsize=12, verticalalignment='center', horizontalalignment='center',
+            bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.5'))
+
+    if not filtered_data.empty and 'armangle_prediction' in filtered_data.columns and filtered_data['armangle_prediction'].notna().all():
+        avg_horz_break = filtered_data['Horzbreak'].mean()
+        avg_arm_angle = filtered_data['armangle_prediction'].mean()
+    
+        # Convert angle to radians for line direction
+        angle_rad = np.radians(avg_arm_angle)
+    
+        # Determine direction sign based on avg_horz_break
+        direction_sign = 1 if avg_horz_break >= 0 else -1
+    
+        # Use a fixed length for the line
+        length = 25  # Adjust as desired
+    
+        # Calculate end coordinates of the line
+        x_end = direction_sign * length * np.cos(angle_rad)
+        y_end = length * np.sin(angle_rad)
+    
+        # Draw the blue dashed line with 50% transparency
+        ax.plot([0, x_end], [0, y_end], color='blue', linestyle='--', alpha=0.5)
+
+        if direction_sign > 0:
+            x_label = 1
+            ha_label = 'left'
+        else:
+            x_label = -1
+            ha_label = 'right'
+        
+        y_label = -0.5
+        ax.text(x_label, y_label, f'Arm Angle = ~ {avg_arm_angle:.1f}°', ha=ha_label, va='top', fontsize=12)
+
+        # Draw a small arc to illustrate the angle
+        if direction_sign > 0:
+            # Line going right: arc from 0 to avg_arm_angle
+            theta1 = 0
+            theta2 = avg_arm_angle
+        else:
+            # Line going left: start from 180° and go backwards by avg_arm_angle
+            theta1 = 180 - avg_arm_angle
+            theta2 = 180
+
+        # Add an arc at the origin with a small radius to show the angle visually
+        arc = Arc((0, 0), width=10, height=10, angle=0, theta1=theta1, theta2=theta2, color='blue', alpha=0.5)
+        ax.add_patch(arc)
+
+    # Add colorbar for tj_stuff_plus
+    cbar = plt.colorbar(sc, ax=ax, pad=0.01)
+    cbar.set_label('TJ Stuff+', fontsize=12)
+    cbar.set_ticks([70, 80, 90, 100, 110, 120, 130])
+
+    st.pyplot(fig)
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -1889,6 +1973,7 @@ pages = {
     "Pitch Locations - RHH/LHH": plot_pitch_locations,
     "Release Plot - Tipping pitches?": create_release_plot,
     "Break Plot - Movement Profile": create_break_plot,
+    "Break Plot - Stuff+": create_break_stuff_plot,  # ← ADD THIS 
     "TEST Break Plot": create_break_plot2,
     "Pitch Metric AVG Table": display_pitch_metrics,
     "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
