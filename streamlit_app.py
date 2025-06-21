@@ -875,7 +875,7 @@ def categorize_pitch_type(pitch_type):
 df['Pitchcategory'] = df['Pitchtype'].apply(categorize_pitch_type)
 
 df = df.copy()
-df['PitcherPitchNo'] = df.groupby(['Pitcher', 'Date']).cumcount() + 1
+df['PitcherPitchNo'] = df.groupby(['pitcherabbrevname', 'Date']).cumcount() + 1
 
 # Set up the color palette based on pitch type
 pitch_types = df['Pitchtype'].unique()
@@ -922,7 +922,7 @@ color_map = {
 st.sidebar.header("Filter Options")
 
 # 1) Get unique pitchers and exclude "Bunnell, Jack"
-filtered_pitchers = df['Pitcher'].unique()
+filtered_pitchers = df['pitcherabbrevname'].unique()
 filtered_pitchers = [pitcher for pitcher in filtered_pitchers if pitcher != "Bunnell, Jack"]
 # 2) Insert "All Pitchers" at the top (not as default selection)
 filtered_pitchers.insert(0, "All Pitchers")
@@ -940,7 +940,7 @@ if selected_pitcher == "All Pitchers":
     dates_available = df[df['Source'].isin(selected_sources)]['Date'].unique()
 else:
     # Otherwise, filter dates for the selected pitcher and selected sources
-    dates_available = df[(df['Pitcher'] == selected_pitcher) & (df['Source'].isin(selected_sources))]['Date'].unique()
+    dates_available = df[(df['pitcherabbrevname'] == selected_pitcher) & (df['Source'].isin(selected_sources))]['Date'].unique()
 
 # 5) Multiselect for dates
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
@@ -948,7 +948,7 @@ selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default
 # 7) Filter the main DataFrame accordingly
 filtered_data = df[df['Date'].isin(selected_dates) & df['Source'].isin(selected_sources)]
 if selected_pitcher != "All Pitchers":
-    filtered_data = filtered_data[filtered_data['Pitcher'] == selected_pitcher]
+    filtered_data = filtered_data[filtered_data['pitcherabbrevname'] == selected_pitcher]
 
 # Function to create scatter plot for pitch locations
 def plot_pitch_locations():
