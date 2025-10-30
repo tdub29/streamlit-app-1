@@ -1,11 +1,20 @@
-# --- Imports (setup only, through step 7 filter) ---
-import streamlit as st
-import pandas as pd
+# =========================
+#   IMPORTS (FULL SET)
+# =========================
+import os
+import sys
+import subprocess
+from datetime import datetime
+
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import datetime
-import os, sys, subprocess, joblib
+from matplotlib.patches import Rectangle, Polygon, Ellipse, Arc  # used in plotting functions
+from tqdm import tqdm
+import streamlit as st
+import joblib
+
 
 # Ensure scikit-learn available for joblib models that depend on it
 try:
