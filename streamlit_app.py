@@ -24,110 +24,6 @@ except ImportError:
 
 
 # =========================
-#   MODELS & ENGINEERING
-# =========================
-def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Prepare features from TrackMan-style columns for model scoring.
-    Expects lowercased columns: pitcher, relside, relspeed, spinrate,
-    extension, relheight, horzbreak, inducedvertbreak, autopitchtype, pitchuid.
-    """
-    need = [
-        "pitcher","relside","relspeed","spinrate","extension",
-        "relheight","horzbreak","inducedvertbreak","autopitchtype","pitchuid"
-    ]
-    keep = [c for c in need if c in df.columns]
-    df = df[keep].copy()
-
-    # Handedness from average relside
-    hand = (
-        df.groupby("pitcher", as_index=False)["relside"]
-          .mean().rename(columns={"relside": "avg_side"})
-    )
-    hand["pitcher_hand"] = np.where(hand["avg_side"] > 0, "R", "L")
-    df = df.merge(hand[["pitcher","pitcher_hand"]], on="pitcher", how="left")
-
-    # Standard names
-    df = df.rename(columns={
-        "relspeed": "start_speed",
-        "spinrate": "spin_rate",
-        "extension": "extension",
-        "relheight": "z0",
-        "relside": "x0",
-        "horzbreak": "ax",
-        "inducedvertbreak": "az",
-        "autopitchtype": "pitch_type"
-    })
-
-    # Mirror horizontal components for LHP
-    df["ax"] = np.where(df["pitcher_hand"] == "L", -df["ax"], df["ax"])
-    df["x0"] = np.where(df["pitcher_hand"] == "L", -df["x0"], df["x0"])
-
-    # Most-used fastball baseline (Four-Seam/Sinker)
-    fastball_types = ["Four-Seam", "Sinker"]
-    fb = df[df["pitch_type"].isin(fastball_types)].copy()
-    if not fb.empty:
-        agg = (
-            fb.groupby(["pitcher","pitch_type"], as_index=False)
-              .agg(avg_fastball_speed=("start_speed","mean"),
-                   avg_fastball_az=("az","mean"),
-                   avg_fastball_ax=("ax","mean"),
-                   count=("start_speed","count"))
-              .sort_values(["count","avg_fastball_speed"], ascending=[False, False])
-              .drop_duplicates(subset=["pitcher"], keep="first")
-        )
-        df = df.merge(
-            agg[["pitcher","avg_fastball_speed","avg_fastball_az","avg_fastball_ax"]],
-            on="pitcher", how="left"
-        )
-        df["speed_diff"] = df["start_speed"] - df["avg_fastball_speed"]
-        df["az_diff"]    = df["az"]          - df["avg_fastball_az"]
-        df["ax_diff"]    = df["ax"]          - df["avg_fastball_ax"]
-    else:
-        df["speed_diff"] = np.nan
-        df["az_diff"]    = np.nan
-        df["ax_diff"]    = np.nan
-
-    df["is_fastball"] = df["pitch_type"].isin(fastball_types)
-
-    # Convert feet → inches for release metrics
-    df["z0"] = df["z0"] * 12
-    df["x0"] = df["x0"] * 12
-    return df
-
-
-def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
-    """
-    Load local joblib models, score df, scale to tj_stuff_plus and xWhiff.
-    Expects columns produced by feature_engineering.
-    """
-    repo_path = os.path.dirname(os.path.abspath(__file__))
-    model_path = os.path.join(repo_path, "NCAA_STUFF_PLUS_ALL.joblib")
-    whiff_path = os.path.join(repo_path, "whiff_model_grouped_training.joblib")
-
-    model = joblib.load(model_path)
-    whiff_model = joblib.load(whiff_path)
-
-    features = ["start_speed","spin_rate","extension","az","ax","x0","z0",
-                "speed_diff","az_diff","ax_diff","is_fastball"]
-    for c in features:
-        if c not in df_for_model.columns:
-            df_for_model[c] = np.nan
-    df_for_model[features] = df_for_model[features].apply(pd.to_numeric, errors="coerce")
-
-    df_for_model["target"] = model.predict(df_for_model[features])
-
-    # 2023 baseline for scaling
-    target_mean_2023 = 0.011532333993710725
-    target_std_2023  = 0.009399038486978739
-    df_for_model["target_zscore"] = (df_for_model["target"] - target_mean_2023) / target_std_2023
-    df_for_model["tj_stuff_plus"] = 100 - (df_for_model["target_zscore"] * 10)
-
-    df_for_model["xWhiff"] = whiff_model.predict(df_for_model[features])
-    return df_for_model
-
-
-# =========================
 #      LOAD BASE DATA
 # =========================
 TM_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
@@ -135,13 +31,16 @@ df = pd.read_csv(TM_URL)
 
 # Tag source and dedupe
 df["Source"] = "Preseason"
-df.drop_duplicates(subset=["PitchUID"], inplace=True)
+if "Pitchuid" in df.columns:
+    df.drop_duplicates(subset=["Pitchuid"], inplace=True)
+elif "PitchUID" in df.columns:
+    df.drop_duplicates(subset=["PitchUID"], inplace=True)
 
-# Normalize to TitleCase so downstream plotting code works with:
-#   'Platelocside','Platelocheight','Relspeed','Spinrate', etc.
+# Normalize headers so downstream code can rely on TitleCase columns like:
+# 'Platelocside','Platelocheight','Relspeed','Spinrate', etc.
 df.columns = [col.strip().capitalize() for col in df.columns]
 
-# Ensure Pitcherabbrevname is present and filled with Pitcher where missing
+# Ensure Pitcherabbrevname exists and is filled
 if "Pitcherabbrevname" not in df.columns:
     df["Pitcherabbrevname"] = df.get("Pitcher", "")
 else:
@@ -181,25 +80,16 @@ def normalize_pitch(s: str) -> str:
     }
     return aliases.get(t, "undefined")
 
-# Build Pitchtype from whichever column exists, then normalize
+# Build canonical Pitchtype from first available source, then normalize
 src_cols = ["Pitchtype", "Autopitchtype", "Taggedpitchtype"]
-first_available = None
-for c in src_cols:
-    if c in df.columns:
-        first_available = c
-        break
-
-if first_available is None:
-    df["Pitchtype"] = "undefined"
-else:
-    df["Pitchtype"] = df[first_available]
-
-# Optional: keep a normalized copy of Taggedpitchtype
-if "Taggedpitchtype" in df.columns:
-    df["Taggedpitchtype_norm"] = df["Taggedpitchtype"].apply(normalize_pitch)
-
-# Final canonical pitch type used everywhere
+first_available = next((c for c in src_cols if c in df.columns), None)
+df["Pitchtype"] = df[first_available] if first_available else "undefined"
 df["Pitchtype"] = df["Pitchtype"].apply(normalize_pitch)
+
+# Ensure Taggedpitchtype exists and is normalized to the same canonical labels
+if "Taggedpitchtype" not in df.columns:
+    df["Taggedpitchtype"] = df["Pitchtype"]
+df["Taggedpitchtype"] = df["Taggedpitchtype"].apply(normalize_pitch)
 
 # =========================
 #   SIDEBAR FILTERS
@@ -229,7 +119,7 @@ if selected_pitcher != "All Pitchers":
     filtered_data = filtered_data[filtered_data["Pitcherabbrevname"] == selected_pitcher]
 
 # =========================
-# Palette (keys match normalized Pitchtype)
+# Palette (keys match normalized labels)
 # =========================
 color_map = {
     "fastball": "#1f77b4",
@@ -243,10 +133,18 @@ color_map = {
     "other": "#bcbd22",
     "undefined": "#17becf"
 }
-
-# Clamp Pitchtype to known keys (safety)
 valid_keys = set(color_map.keys())
-filtered_data["Pitchtype"] = filtered_data["Pitchtype"].apply(lambda x: x if x in valid_keys else "undefined")
+
+# Re-normalize + clamp on the filtered slice (defensive and ensures palette alignment)
+for col in ["Pitchtype", "Taggedpitchtype"]:
+    if col not in filtered_data.columns:
+        filtered_data[col] = "undefined"
+    else:
+        filtered_data[col] = filtered_data[col].apply(normalize_pitch)
+    filtered_data[col] = filtered_data[col].where(filtered_data[col].isin(valid_keys), "undefined")
+
+# Provide a global list some plots expect (e.g., polar legend code that references `pitch_types`)
+pitch_types = sorted([pt for pt in filtered_data["Taggedpitchtype"].dropna().unique() if pt in valid_keys])
 
 
 # Function to create scatter plot for pitch locations
