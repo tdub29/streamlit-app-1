@@ -248,6 +248,15 @@ color_map = {
 # Normalize color_map keys to lowercase to match pitch values
 color_map = {k.lower(): v for k, v in color_map.items()}
 
+valid_keys = set(color_map.keys())
+filtered_data["Pitchtype"] = (
+    filtered_data["Pitchtype"]
+    .astype(str)
+    .str.strip()
+    .str.lower()
+    .apply(lambda x: x if x in valid_keys else "undefined")
+)
+
 
 
 # Function to create scatter plot for pitch locations
