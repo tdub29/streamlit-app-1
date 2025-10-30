@@ -352,6 +352,13 @@ for col in ["Pitchtype", "Taggedpitchtype"]:
             .fillna(filtered_data[col].str.lower())
         )
 
+# Diagnostic block
+st.write("DEBUG: unique Taggedpitchtype values =>", filtered_data["Taggedpitchtype"].dropna().unique().tolist())
+st.write("DEBUG: color_map keys =>", list(color_map.keys()))
+
+missing_keys = set(filtered_data["Taggedpitchtype"].dropna().unique()) - set(color_map.keys())
+if missing_keys:
+    st.error(f"Missing keys in color_map: {missing_keys}")
 
 
 # Function to create scatter plot for pitch locations
