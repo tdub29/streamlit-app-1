@@ -142,6 +142,15 @@ df.drop_duplicates(subset=["PitchUID"], inplace=True)
 #   'Platelocside','Platelocheight','Relspeed','Spinrate', etc.
 df.columns = [col.strip().capitalize() for col in df.columns]
 
+# Ensure Pitcherabbrevname is present and filled with Pitcher where missing
+if "Pitcherabbrevname" not in df.columns:
+    df["Pitcherabbrevname"] = df.get("Pitcher", "")
+else:
+    df["Pitcherabbrevname"] = df["Pitcherabbrevname"].fillna(df.get("Pitcher", ""))
+
+# Clean spaces and ensure string type
+df["Pitcherabbrevname"] = df["Pitcherabbrevname"].astype(str).str.strip()
+
 # --- Skipping unchanged preprocessing for brevity ---
 
 # =========================
