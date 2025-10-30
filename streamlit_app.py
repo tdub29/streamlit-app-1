@@ -1,8 +1,9 @@
-# --- Imports (setup only) ---
+# --- Imports (setup only, through step 7 filter) ---
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from datetime import datetime
 import os, sys, subprocess, joblib
 
@@ -13,19 +14,21 @@ except ImportError:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "scikit-learn"])
     import sklearn  # noqa
 
-# ========== Model Feature Engineering (TrackMan master only) ==========
+
+# =========================
+#   MODELS & ENGINEERING
+# =========================
 def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare features from TrackMan-style columns for model scoring.
     Expects lowercased columns: pitcher, relside, relspeed, spinrate,
     extension, relheight, horzbreak, inducedvertbreak, autopitchtype, pitchuid.
     """
-    needed_cols = [
+    need = [
         "pitcher","relside","relspeed","spinrate","extension",
         "relheight","horzbreak","inducedvertbreak","autopitchtype","pitchuid"
     ]
-    # Keep only available needed columns
-    keep = [c for c in needed_cols if c in df.columns]
+    keep = [c for c in need if c in df.columns]
     df = df[keep].copy()
 
     # Handedness from average relside
@@ -78,10 +81,12 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
         df["ax_diff"]    = np.nan
 
     df["is_fastball"] = df["pitch_type"].isin(fastball_types)
-    # Convert feet→inches where needed
+
+    # Convert feet → inches for release metrics
     df["z0"] = df["z0"] * 12
     df["x0"] = df["x0"] * 12
     return df
+
 
 def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     """
@@ -104,7 +109,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
 
     df_for_model["target"] = model.predict(df_for_model[features])
 
-    # 2023 baseline (keep consistent with prior scaling)
+    # 2023 baseline for scaling
     target_mean_2023 = 0.011532333993710725
     target_std_2023  = 0.009399038486978739
     df_for_model["target_zscore"] = (df_for_model["target"] - target_mean_2023) / target_std_2023
@@ -113,7 +118,10 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     df_for_model["xWhiff"] = whiff_model.predict(df_for_model[features])
     return df_for_model
 
-# ========== Load TrackMan master file ==========
+
+# =========================
+#      LOAD BASE DATA
+# =========================
 TM_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
 df = pd.read_csv(TM_URL)
 
@@ -121,17 +129,27 @@ df = pd.read_csv(TM_URL)
 df["Source"] = "Preseason"
 df.drop_duplicates(subset=["PitchUID"], inplace=True)
 
-# Normalize column casing (Title case to align with rest of app)
+# Normalize to TitleCase so downstream plotting code works with:
+#   'Platelocside','Platelocheight','Relspeed','Spinrate', etc.
 df.columns = [col.strip().capitalize() for col in df.columns]
 
-# Ensure required fields exist for modeling / downstream logic
-# (provide sensible fallbacks without TruMedia)
+# If Autopitchtype is missing, mirror Taggedpitchtype
 if "Autopitchtype" not in df.columns and "Taggedpitchtype" in df.columns:
     df["Autopitchtype"] = df["Taggedpitchtype"]
 
-# --- RelHeight correction & quick label columns (TrackMan only) ---
+# Ensure optional columns expected by later pages exist (as placeholders if absent)
+for col in ["Horzrelangle","Vertrelangle","Tilt"]:
+    if col not in df.columns:
+        df[col] = np.nan
+
+# -------------------------------
+# RelHeight normalization (TM only)
+# -------------------------------
 def process_relheight(df_in: pd.DataFrame) -> pd.DataFrame:
     excluded_pitchers = ["Bunnell, Jack"]
+    if "Relheight" not in df_in.columns or "Pitcher" not in df_in.columns or "Date" not in df_in.columns:
+        return df_in
+
     overall = (df_in.groupby("Pitcher")["Relheight"]
                     .mean().reset_index().rename(columns={"Relheight":"player_overall_avg_relheight"}))
     daily = (df_in[~df_in["Pitcher"].isin(excluded_pitchers)]
@@ -149,7 +167,8 @@ def process_relheight(df_in: pd.DataFrame) -> pd.DataFrame:
 
 df = process_relheight(df)
 
-# Swing / Contact / Whiff / Count (TrackMan)
+# Swing / Contact / Whiff / Count (TrackMan definitions)
+# Works with columns expected by later functions: 'Swing','Whiff','Count'
 df["Swing"] = np.where(
     (df.get("Exitspeed", 0) > 0) | (df.get("Pitchcall","").str.contains("Swing|Foul", case=False, na=False)),
     True, False
@@ -158,29 +177,39 @@ df["Contact"] = np.where(df.get("Exitspeed", 0) > 0, "Yes", "No")
 df["Whiff"]   = np.where((df["Swing"]) & (df["Contact"] == "No"), 1, 0).astype(int)
 df["Count"]   = df.get("Balls", 0).astype(str) + "-" + df.get("Strikes", 0).astype(str)
 
-# ========== Model scoring on TM master ==========
+# =========================
+#   MODEL SCORING (TM)
+# =========================
 df_for_model = df.copy()
+# Lowercase for feature_engineering expectations
 df_for_model.columns = [c.lower() for c in df_for_model.columns]
-
-# Provide missing lowercased columns expected by feature_engineering
 if "autopitchtype" not in df_for_model.columns and "taggedpitchtype" in df_for_model.columns:
     df_for_model["autopitchtype"] = df_for_model["taggedpitchtype"]
 
 df_for_model = feature_engineering(df_for_model)
 df_for_model = run_model_and_scale(df_for_model)
 
-# Merge predictions back to original df on PitchUID
+# Merge predictions back to original df on PitchUID -> adds 'tj_stuff_plus' and 'xWhiff' (capitalization preserved below)
 if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
-    bring_cols = ["pitchuid","target","target_zscore","tj_stuff_plus","xWhiff"]
-    df = df.merge(df_for_model[bring_cols], left_on="Pitchuid", right_on="pitchuid", how="left")
+    bring = ["pitchuid","target","target_zscore","tj_stuff_plus","xWhiff"]
+    df = df.merge(df_for_model[bring], left_on="Pitchuid", right_on="pitchuid", how="left")
     df.drop(columns=["pitchuid"], inplace=True, errors="ignore")
 
-# ========== Optional: merge arm angle reference ==========
-armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
-arm_df = pd.read_csv(armangle_path)
-df = df.merge(arm_df[["Pitcher","armangle_prediction"]], on="Pitcher", how="left")
+# =========================
+#  Arm Angle reference (optional)
+# =========================
+try:
+    armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
+    arm_df = pd.read_csv(armangle_path)
+    if {"Pitcher","armangle_prediction"}.issubset(arm_df.columns):
+        df = df.merge(arm_df[["Pitcher","armangle_prediction"]], on="Pitcher", how="left")
+except Exception:
+    pass
 
-# Normalize pitch labels
+# =========================
+#   Label Normalization
+# =========================
+# Pitchtype used everywhere else
 df["Pitchtype"] = (
     df.get("Taggedpitchtype", pd.Series(index=df.index, dtype="object"))
       .replace("Undefined", np.nan)
@@ -188,7 +217,7 @@ df["Pitchtype"] = (
       .replace({"Four-Seam":"Fastball","Fourseamfastball":"Fastball","Changeup":"Changeup","ChangeUp":"Changeup"})
 )
 
-# Tilt conversion to float hours
+# Convert Tilt to float hours (e.g., "1:45" -> 1.75) for create_polar_plots
 def convert_tilt_to_float(v):
     try:
         if isinstance(v, str) and ":" in v:
@@ -197,10 +226,9 @@ def convert_tilt_to_float(v):
         return np.nan
     except Exception:
         return np.nan
-
 df["Tilt_float"] = df.get("Tilt", pd.Series(index=df.index)).apply(convert_tilt_to_float)
 
-# Zone flags (TrackMan plate locs)
+# Zone flags required later
 df["Inzone"] = df.apply(
     lambda r: (-0.83 <= r.get("Platelocside", np.nan) <= 0.83) and (1.5 <= r.get("Platelocheight", np.nan) <= 3.5),
     axis=1
@@ -210,7 +238,7 @@ df["Comploc"] = df.apply(
     axis=1
 )
 
-# Pitch categories (may be used later)
+# Coarser category if you need it later; harmless to keep
 pitch_categories = {
     "Breaking Ball": ["Slider","Curveball"],
     "Fastball": ["Fastball","Four-Seam","Sinker","Cutter","TwoSeamFastBall"],
@@ -223,37 +251,82 @@ def categorize_pitch_type(pt):
     return None
 df["Pitchcategory"] = df["Pitchtype"].apply(categorize_pitch_type)
 
-# Per-day pitch index and handedness mapping (used later)
+# Per-day pitch index & handedness/batter side standardization for later functions
 df = df.copy()
-df["Pitcherpitchno"] = df.groupby(["Pitcherabbrevname","Date"]).cumcount() + 1
-df["Pitcherthrows"]  = np.where(df.get("Relside", 0) < 0, "Left", "Right")  # heuristic if explicit not present
-df["Batterside"]     = df.get("Batterside", pd.Series(index=df.index)).replace({"R":"Right","L":"Left"})
+if {"Pitcherabbrevname","Date"}.issubset(df.columns):
+    df["Pitcherpitchno"] = df.groupby(["Pitcherabbrevname","Date"]).cumcount() + 1
+else:
+    df["Pitcherpitchno"] = np.arange(1, len(df) + 1)
 
-# ---------------- Sidebar filters (stop here) ----------------
+# Pitcherthrows (Right/Left) inferred from relside sign if explicit not present
+if "Pitcherthrows" not in df.columns:
+    df["Pitcherthrows"]  = np.where(df.get("Relside", 0) < 0, "Left", "Right")
+
+# Normalize batterside to 'Right'/'Left' as expected by plots
+df["Batterside"] = df.get("Batterside", pd.Series(index=df.index)).replace({"R":"Right","L":"Left"})
+
+# Color map and pitch_types used by downstream plotting functions
+color_map = {
+    # Fastballs (blue shades)
+    'Fastball': '#1f77b4',
+    'TwoSeamFastBall': '#1f77b4',
+    'FourSeamFastBall': '#1f77b4',
+    'Riding Fastball': '#3399cc',
+    'Cutter': '#5DA5DA',
+    # Sliders (reds)
+    'Slider': '#d62728',
+    'Gyro Slider': '#e74c3c',
+    'Two-Plane Slider': '#ff6f61',
+    'Sweeper': '#ff9999',
+    # Curveballs (purples)
+    'Curveball': '#9467bd',
+    'Slurve': '#a678b3',
+    'Slow Curve': '#cba0e3',
+    # Sinkers (greens)
+    'Sinker': '#2ca02c',
+    # Changeups (browns)
+    'Changeup': '#8c564b',
+    'Movement-Based Changeup': '#a9746e',
+    'Velo-Based Changeup': '#c19a6b',
+    # Splitters / Knucks / Other
+    'Splitter': '#e377c2',
+    'Knuckleball': '#7f7f7f',
+    'Other': '#7f7f7f',
+    'Undefined': '#7f7f7f'
+}
+pitch_types = df["Pitchtype"].dropna().unique().tolist()
+
+# =========================
+#   SIDEBAR FILTERS
+# =========================
 st.sidebar.header("Filter Options")
 
 # Pitchers (exclude one by request)
-pitchers = df["Pitcherabbrevname"].dropna().unique().tolist()
+pitchers = df.get("Pitcherabbrevname", pd.Series(dtype="object")).dropna().unique().tolist()
 pitchers = [p for p in pitchers if p != "Bunnell, Jack"]
 pitchers.insert(0, "All Pitchers")
 selected_pitcher = st.sidebar.selectbox("Select Pitcher", pitchers)
 
-# Sources (likely just 'Preseason' in TM master, but leave flexible)
-sources_available = df["Source"].dropna().unique().tolist()
+# Sources (likely just 'Preseason' for TM master, but keep flexible)
+sources_available = df.get("Source", pd.Series(dtype="object")).dropna().unique().tolist()
 selected_sources = st.sidebar.multiselect("Select Sources", sources_available, default=sources_available)
 
 # Dates list depends on pitcher and sources
 if selected_pitcher == "All Pitchers":
     dates_available = df[df["Source"].isin(selected_sources)]["Date"].dropna().unique().tolist()
 else:
-    dates_available = df[(df["Pitcherabbrevname"] == selected_pitcher) & (df["Source"].isin(selected_sources))]["Date"].dropna().unique().tolist()
+    dates_available = df[
+        (df["Pitcherabbrevname"] == selected_pitcher) & (df["Source"].isin(selected_sources))
+    ]["Date"].dropna().unique().tolist()
 
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
-# 7) Filter the main DataFrame accordingly  (CUT HERE)
+# ============== 7) FILTER THE MAIN DATAFRAME ACCORDINGLY (STOP HERE) ==============
 filtered_data = df[df["Date"].isin(selected_dates) & df["Source"].isin(selected_sources)]
 if selected_pitcher != "All Pitchers":
     filtered_data = filtered_data[filtered_data["Pitcherabbrevname"] == selected_pitcher]
+# ---------------------------- CUT HERE -------------------------------------------
+
 
 
 # Function to create scatter plot for pitch locations
