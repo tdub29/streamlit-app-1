@@ -147,10 +147,27 @@ if "Pitcherabbrevname" not in df.columns:
     df["Pitcherabbrevname"] = df.get("Pitcher", "")
 else:
     df["Pitcherabbrevname"] = df["Pitcherabbrevname"].fillna(df.get("Pitcher", ""))
+    
+
 
 # Clean spaces and ensure string type
 df["Pitcherabbrevname"] = df["Pitcherabbrevname"].astype(str).str.strip()
 
+if "Pitchtype" not in df.columns:
+    if "Autopitchtype" in df.columns:
+        df["Pitchtype"] = df["Autopitchtype"]
+    elif "Taggedpitchtype" in df.columns:
+        df["Pitchtype"] = df["Taggedpitchtype"]
+    else:
+        df["Pitchtype"] = "Undefined"
+else:
+    df["Pitchtype"] = df["Pitchtype"].fillna(
+        df.get("Autopitchtype", df.get("Taggedpitchtype", "Undefined"))
+    )
+
+# Clean spacing and lowercase normalization for consistency
+df["Pitchtype"] = df["Pitchtype"].astype(str).str.strip().str.lower()
+✅ What this does
 # --- Skipping unchanged preprocessing for brevity ---
 
 # =========================
