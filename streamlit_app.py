@@ -327,6 +327,31 @@ if selected_pitcher != "All Pitchers":
     filtered_data = filtered_data[filtered_data["Pitcherabbrevname"] == selected_pitcher]
 # ---------------------------- CUT HERE -------------------------------------------
 
+# Normalize pitch type names for consistency with color_map and plots
+pitch_map = {
+    "FourSeamFastBall": "fastball",
+    "TwoSeamFastBall": "twoseamfastball",
+    "Fastball": "fastball",
+    "Sinker": "sinker",
+    "Slider": "slider",
+    "ChangeUp": "changeup",
+    "Cutter": "cutter",
+    "Curveball": "curveball",
+    "Splitter": "splitter",
+    "Undefined": "undefined"
+}
+
+# Apply the mapping to both Pitchtype and Taggedpitchtype if they exist
+for col in ["Pitchtype", "Taggedpitchtype"]:
+    if col in filtered_data.columns:
+        filtered_data[col] = (
+            filtered_data[col]
+            .astype(str)
+            .str.strip()
+            .map(pitch_map)
+            .fillna(filtered_data[col].str.lower())
+        )
+
 
 
 # Function to create scatter plot for pitch locations
