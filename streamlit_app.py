@@ -186,6 +186,30 @@ for col in ["Pitchtype", "Taggedpitchtype"]:
             .fillna(filtered_data[col].str.lower())
         )
 
+# Base color map for all pitch types
+color_map = {
+    "Fastball": "#1f77b4",
+    "TwoSeamFastBall": "#1f77b4",
+    "FourSeamFastBall": "#1f77b4",
+    "Riding Fastball": "#1f77b4",
+    "Cutter": "#9467bd",
+    "Slider": "#ff7f0e",
+    "Gyro Slider": "#ff7f0e",
+    "Two-Plane Slider": "#ff7f0e",
+    "Sweeper": "#ff7f0e",
+    "Curveball": "#2ca02c",
+    "Slurve": "#2ca02c",
+    "Slow Curve": "#2ca02c",
+    "Sinker": "#8c564b",
+    "Changeup": "#d62728",
+    "Movement-Based Changeup": "#d62728",
+    "Velo-Based Changeup": "#d62728",
+    "Splitter": "#e377c2",
+    "Knuckleball": "#7f7f7f",
+    "Other": "#bcbd22",
+    "Undefined": "#17becf"
+}
+
 # Normalize color_map keys to lowercase to match pitch values
 color_map = {k.lower(): v for k, v in color_map.items()}
 
