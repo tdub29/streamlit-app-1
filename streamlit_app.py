@@ -15,7 +15,6 @@ from tqdm import tqdm
 import streamlit as st
 import joblib
 
-
 # Ensure scikit-learn available for joblib models that depend on it
 try:
     import sklearn  # noqa
@@ -147,28 +146,60 @@ if "Pitcherabbrevname" not in df.columns:
     df["Pitcherabbrevname"] = df.get("Pitcher", "")
 else:
     df["Pitcherabbrevname"] = df["Pitcherabbrevname"].fillna(df.get("Pitcher", ""))
-    
-
 
 # Clean spaces and ensure string type
 df["Pitcherabbrevname"] = df["Pitcherabbrevname"].astype(str).str.strip()
 
-if "Pitchtype" not in df.columns:
-    if "Autopitchtype" in df.columns:
-        df["Pitchtype"] = df["Autopitchtype"]
-    elif "Taggedpitchtype" in df.columns:
-        df["Pitchtype"] = df["Taggedpitchtype"]
-    else:
-        df["Pitchtype"] = "Undefined"
-else:
-    df["Pitchtype"] = df["Pitchtype"].fillna(
-        df.get("Autopitchtype", df.get("Taggedpitchtype", "Undefined"))
-    )
+# --- Canonical pitchtype normalization (single source of truth) ---
+def normalize_pitch(s: str) -> str:
+    if not isinstance(s, str):
+        return "undefined"
+    t = s.strip().lower().replace("-", "").replace(" ", "")
+    aliases = {
+        # fastballs
+        "fourseam": "fastball", "4s": "fastball", "ff": "fastball", "fa": "fastball",
+        "ridingfastball": "fastball", "fourseamfastball": "fastball", "fastball": "fastball",
+        # sinker / 2-seam
+        "twoseam": "sinker", "2s": "sinker", "ts": "sinker", "sinker": "sinker", "si": "sinker",
+        # cutter
+        "cutter": "cutter", "fc": "cutter",
+        # sliders
+        "slider": "slider", "sl": "slider", "gyroslider": "slider",
+        "twoplaneslider": "slider", "sweeper": "slider",
+        # curves
+        "curve": "curveball", "curveball": "curveball", "cb": "curveball",
+        "knucklecurve": "curveball", "kc": "curveball", "slurve": "curveball", "slowcurve": "curveball",
+        # changeups
+        "change": "changeup", "changeup": "changeup", "ch": "changeup",
+        "movementbasedchangeup": "changeup", "velobasedchangeup": "changeup",
+        # splitter / split-change
+        "splitter": "splitter", "sp": "splitter", "splitchange": "splitter",
+        # knuckle
+        "knuckleball": "knuckleball", "kn": "knuckleball",
+        # other/unknown
+        "other": "other", "unknown": "undefined", "undefined": "undefined"
+    }
+    return aliases.get(t, "undefined")
 
-# Clean spacing and lowercase normalization for consistency
-df["Pitchtype"] = df["Pitchtype"].astype(str).str.strip().str.lower()
-# ✅ What this does
-# --- Skipping unchanged preprocessing for brevity ---
+# Build Pitchtype from whichever column exists, then normalize
+src_cols = ["Pitchtype", "Autopitchtype", "Taggedpitchtype"]
+first_available = None
+for c in src_cols:
+    if c in df.columns:
+        first_available = c
+        break
+
+if first_available is None:
+    df["Pitchtype"] = "undefined"
+else:
+    df["Pitchtype"] = df[first_available]
+
+# Optional: keep a normalized copy of Taggedpitchtype
+if "Taggedpitchtype" in df.columns:
+    df["Taggedpitchtype_norm"] = df["Taggedpitchtype"].apply(normalize_pitch)
+
+# Final canonical pitch type used everywhere
+df["Pitchtype"] = df["Pitchtype"].apply(normalize_pitch)
 
 # =========================
 #   SIDEBAR FILTERS
@@ -192,71 +223,30 @@ else:
 
 selected_dates = st.sidebar.multiselect("Select Dates", dates_available, default=dates_available)
 
-# ============== 7) FILTER THE MAIN DATAFRAME ACCORDINGLY (STOP HERE) ==============
+# ============== FILTER THE MAIN DATAFRAME ACCORDINGLY ==============
 filtered_data = df[df["Date"].isin(selected_dates) & df["Source"].isin(selected_sources)]
 if selected_pitcher != "All Pitchers":
     filtered_data = filtered_data[filtered_data["Pitcherabbrevname"] == selected_pitcher]
 
-# --- Fix pitch name normalization and color map alignment ---
-pitch_map = {
-    "FourSeamFastBall": "fastball",
-    "TwoSeamFastBall": "twoseamfastball",
-    "Fastball": "fastball",
-    "Sinker": "sinker",
-    "Slider": "slider",
-    "ChangeUp": "changeup",
-    "Cutter": "cutter",
-    "Curveball": "curveball",
-    "Splitter": "splitter",
-    "Undefined": "undefined"
-}
-
-for col in ["Pitchtype", "Taggedpitchtype"]:
-    if col in filtered_data.columns:
-        filtered_data[col] = (
-            filtered_data[col]
-            .astype(str)
-            .str.strip()
-            .map(pitch_map)
-            .fillna(filtered_data[col].str.lower())
-        )
-
-# Base color map for all pitch types
+# =========================
+# Palette (keys match normalized Pitchtype)
+# =========================
 color_map = {
-    "Fastball": "#1f77b4",
-    "TwoSeamFastBall": "#1f77b4",
-    "FourSeamFastBall": "#1f77b4",
-    "Riding Fastball": "#1f77b4",
-    "Cutter": "#9467bd",
-    "Slider": "#ff7f0e",
-    "Gyro Slider": "#ff7f0e",
-    "Two-Plane Slider": "#ff7f0e",
-    "Sweeper": "#ff7f0e",
-    "Curveball": "#2ca02c",
-    "Slurve": "#2ca02c",
-    "Slow Curve": "#2ca02c",
-    "Sinker": "#8c564b",
-    "Changeup": "#d62728",
-    "Movement-Based Changeup": "#d62728",
-    "Velo-Based Changeup": "#d62728",
-    "Splitter": "#e377c2",
-    "Knuckleball": "#7f7f7f",
-    "Other": "#bcbd22",
-    "Undefined": "#17becf"
+    "fastball": "#1f77b4",
+    "sinker": "#8c564b",
+    "cutter": "#9467bd",
+    "slider": "#ff7f0e",
+    "curveball": "#2ca02c",
+    "changeup": "#d62728",
+    "splitter": "#e377c2",
+    "knuckleball": "#7f7f7f",
+    "other": "#bcbd22",
+    "undefined": "#17becf"
 }
 
-# Normalize color_map keys to lowercase to match pitch values
-color_map = {k.lower(): v for k, v in color_map.items()}
-
+# Clamp Pitchtype to known keys (safety)
 valid_keys = set(color_map.keys())
-filtered_data["Pitchtype"] = (
-    filtered_data["Pitchtype"]
-    .astype(str)
-    .str.strip()
-    .str.lower()
-    .apply(lambda x: x if x in valid_keys else "undefined")
-)
-
+filtered_data["Pitchtype"] = filtered_data["Pitchtype"].apply(lambda x: x if x in valid_keys else "undefined")
 
 
 # Function to create scatter plot for pitch locations
