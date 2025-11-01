@@ -120,10 +120,15 @@ swing_flag = (
     | pitch_call.str.contains("foul", na=False)
 )
 
-# Contact outcome stored as "Yes"/"No" and reused for Whiff determination
-df["Contact"] = np.where(exit_speed > 0, "Yes", "No")
+# Contact should account for foul balls, which often lack exit velocity readings
+contact_flag = (
+    (exit_speed > 0)
+    | pitch_call.str.contains("foul", na=False)
+    | pitch_call.str.contains("inplay", na=False)
+)
+df["Contact"] = np.where(contact_flag, "Yes", "No")
 df["Swing"] = swing_flag
-df["Whiff"] = swing_flag & (df["Contact"].str.lower() == "no")
+df["Whiff"] = swing_flag & ~contact_flag
 
 # Strike definitions exclude bunts entirely
 strike_flag = pitch_call.str.contains("strike", na=False) | pitch_call.str.contains("foul", na=False)
