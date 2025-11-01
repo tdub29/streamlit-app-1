@@ -92,6 +92,59 @@ if "Taggedpitchtype" not in df.columns:
 df["Taggedpitchtype"] = df["Taggedpitchtype"].apply(normalize_pitch)
 
 # =========================
+#  DERIVED FLAG COLUMNS
+# =========================
+
+# Helper accessors that gracefully handle missing columns
+def _get_numeric(col_name: str) -> pd.Series:
+    if col_name not in df.columns:
+        return pd.Series(0, index=df.index, dtype="float64")
+    return pd.to_numeric(df[col_name], errors="coerce").fillna(0)
+
+
+def _get_str_lower(col_name: str) -> pd.Series:
+    if col_name not in df.columns:
+        return pd.Series("", index=df.index, dtype="object")
+    return df[col_name].astype(str).str.lower()
+
+
+exit_speed = _get_numeric("Exitspeed")
+pitch_call = _get_str_lower("Pitchcall")
+plate_side = _get_numeric("Platelocside")
+plate_height = _get_numeric("Platelocheight")
+
+# Swing flag: Exit speed registered OR swing/foul descriptors in PitchCall
+swing_flag = (
+    (exit_speed > 0)
+    | pitch_call.str.contains("swing", na=False)
+    | pitch_call.str.contains("foul", na=False)
+)
+
+# Contact outcome stored as "Yes"/"No" and reused for Whiff determination
+df["Contact"] = np.where(exit_speed > 0, "Yes", "No")
+df["Swing"] = swing_flag
+df["Whiff"] = swing_flag & (df["Contact"].str.lower() == "no")
+
+# Strike definitions exclude bunts entirely
+strike_flag = pitch_call.str.contains("strike", na=False) | pitch_call.str.contains("foul", na=False)
+strike_flag &= ~pitch_call.str.contains("bunt", na=False)
+df["Strike"] = strike_flag
+
+# In-zone and Competitive Location flags
+df["Inzone"] = (
+    (plate_side.between(-0.83, 0.83, inclusive="both"))
+    & (plate_height.between(1.5, 3.5, inclusive="both"))
+)
+df["Comploc"] = (
+    (plate_side.between(-1.15, 1.15, inclusive="both"))
+    & (plate_height.between(1.1, 3.9, inclusive="both"))
+)
+
+# Ensure boolean dtype for downstream calculations
+for col in ["Swing", "Whiff", "Strike", "Inzone", "Comploc"]:
+    df[col] = df[col].fillna(False).astype(bool)
+
+# =========================
 #   SIDEBAR FILTERS
 # =========================
 st.sidebar.header("Filter Options")
