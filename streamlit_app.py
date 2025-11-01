@@ -972,10 +972,13 @@ def calculate_pitch_metrics(pitcher_data):
 
     # We now group on both Pitcher and Pitchtype, so each row in the final DF
     # corresponds to that unique combination.
+    pitcher_data = pitcher_data.copy()
+
     grouped = pitcher_data.groupby(['Pitcherabbrevname', 'Pitchtype'])
 
     # Count total pitches in each (Pitcher,Pitchtype)
     pitch_type_counts = grouped.size().rename('Count')
+    index_template = pitch_type_counts.index
 
     # List of columns to average
     avg_cols = [
@@ -986,11 +989,12 @@ def calculate_pitch_metrics(pitcher_data):
     # If we have 'tj_stuff_plus', compute the average; otherwise create an empty Series
     if 'tj_stuff_plus' in pitcher_data.columns:
         stuff_plus_mean = grouped['tj_stuff_plus'].mean().round(1).rename('TJStuff+')
+        stuff_plus_mean = stuff_plus_mean.reindex(index_template)
     else:
-        stuff_plus_mean = pd.Series(dtype=float, name='TJStuff+')
+        stuff_plus_mean = pd.Series(np.nan, index=index_template, name='TJStuff+')
 
     # Mean of the listed columns, grouped by (Pitcher,Pitchtype)
-    pitch_type_averages = grouped[avg_cols].mean().round(1)
+    pitch_type_averages = grouped[avg_cols].mean().round(1).reindex(index_template)
 
     # Ensure the relevant columns are Boolean
     for col in ['Whiff', 'Swing', 'Strike', 'Inzone']:
@@ -1005,7 +1009,7 @@ def calculate_pitch_metrics(pitcher_data):
     # Count strikes by (Pitcher, Pitchtype)
     strikes_count = strikes.groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     # Compute strike percentage
-    strike_percentages = (strikes_count / pitch_type_counts * 100).rename('Strike %').round(1)
+    strike_percentages = (strikes_count / pitch_type_counts * 100).rename('Strike %').round(1).reindex(index_template, fill_value=0)
 
     # -------------------
     # WHIFF %
@@ -1013,14 +1017,14 @@ def calculate_pitch_metrics(pitcher_data):
     # Compute whiff percentage as: (Number of whiffs) / (Number of swings) * 100
     swinging_strikes = pitcher_data[pitcher_data['Whiff']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     total_swings = pitcher_data[pitcher_data['Swing']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
-    whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').fillna(0).round(1)
+    whiff_percentages = (swinging_strikes / total_swings * 100).rename('Whiff %').round(1).reindex(index_template, fill_value=0)
     
     # -------------------
     # INZONE %
     # -------------------
     # Compute in-zone percentage as: (Number of in-zone pitches) / (Total pitches) * 100
     in_zone_counts = pitcher_data[pitcher_data['Inzone']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
-    in_zone_percentage = (in_zone_counts / pitch_type_counts * 100).rename('InZone %').fillna(0).round(1)
+    in_zone_percentage = (in_zone_counts / pitch_type_counts * 100).rename('InZone %').round(1).reindex(index_template, fill_value=0)
     
     # -------------------
     # INZONE WHIFF %
@@ -1028,7 +1032,7 @@ def calculate_pitch_metrics(pitcher_data):
     # Compute in-zone whiff percentage as: (Number of whiffs in-zone) / (Number of swings in-zone) * 100
     in_zone_swinging_strikes = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Whiff'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     in_zone_swings = pitcher_data[(pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
-    in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').fillna(0).round(1)
+    in_zone_whiff_percentages = (in_zone_swinging_strikes / in_zone_swings * 100).rename('InZone Whiff %').round(1).reindex(index_template, fill_value=0)
     
     # -------------------
     # CHASE %
@@ -1036,7 +1040,7 @@ def calculate_pitch_metrics(pitcher_data):
     # Here we define 'Chase %' as the percentage of out-of-zone swings.
     out_zone_swings = pitcher_data[(~pitcher_data['Inzone']) & (pitcher_data['Swing'])].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     total_out_zone_pitches = pitcher_data[~pitcher_data['Inzone']].groupby(['Pitcherabbrevname', 'Pitchtype']).size()
-    chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').fillna(0).round(1)
+    chase_percentage = (out_zone_swings / total_out_zone_pitches * 100).rename('Chase %').round(1).reindex(index_template, fill_value=0)
     # -------------------
     # xWHIFF %
     # -------------------
@@ -1044,14 +1048,14 @@ def calculate_pitch_metrics(pitcher_data):
         # Multiply by 100 to get a percentage
         xwhiff_percentages = (
             grouped['xWhiff'].mean() * 100
-        ).rename('xWhiff %').fillna(0).round(1)
+        ).rename('xWhiff %').round(1).reindex(index_template)
     else:
-        xwhiff_percentages = pd.Series(dtype=float, name='xWhiff %')
+        xwhiff_percentages = pd.Series(np.nan, index=index_template, name='xWhiff %')
 
     # -------------------
     # MAX VELO
     # -------------------
-    max_velocity = grouped['Relspeed'].max().rename('Max velo').round(1)
+    max_velocity = grouped['Relspeed'].max().rename('Max velo').round(1).reindex(index_template)
 
   
     # -------------------
@@ -1061,7 +1065,7 @@ def calculate_pitch_metrics(pitcher_data):
     comp_counts = comp_data.groupby(['Pitcherabbrevname', 'Pitchtype']).size()
     comploc_percentage = (
         comp_counts / pitch_type_counts * 100
-    ).rename('CompLoc %').fillna(0).round(1)
+    ).rename('CompLoc %').round(1).reindex(index_template, fill_value=0)
 
 
 
