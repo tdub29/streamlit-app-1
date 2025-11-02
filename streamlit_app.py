@@ -1499,17 +1499,19 @@ def plot_rolling_3_pitch_averages(df):
 # Streamlit Page Navigation
 st.sidebar.title("Navigation")
 pages = {
+    
+    "Pitch Metric AVG Table": display_pitch_metrics,
     "Post-Series Report": generate_pitch_reports_page,  # Add this,
-    "NEW Stuff and Velo throughout game": lambda: plot_rolling_3_pitch_averages(filtered_data),
+    # "NEW Stuff and Velo throughout game": lambda: plot_rolling_3_pitch_averages(filtered_data),
     "Pitch Locations - RHH/LHH": plot_pitch_locations,
-    "Release Plot - Tipping pitches?": create_release_plot,
+
     "Break Plot - Movement Profile": create_break_plot,
     "Break Plot - Stuff+": create_break_stuff_plot,  # ← ADD THIS 
-    "TEST Break Plot": create_break_plot2,
-    "Pitch Metric AVG Table": display_pitch_metrics,
-    "Confidence Ellipse - Command Analysis": create_confidence_ellipse,
+    "Release Plot - Tipping pitches?": create_release_plot,
+    # "TEST Break Plot": create_break_plot2,
+    "Release Angles - Command Analysis": create_confidence_ellipse,
     "Stuff+ Over Time": plot_rolling_stuff_plus,  # ← ADD THIS
-    "Polar Plots - Understanding Tilt": create_polar_plots,
+    "Tilt Plots": create_polar_plots,
     "Ideal Pitch Locations": plot_ideal_pitch_locations,
     "Raw Data": display_raw_data
 }
