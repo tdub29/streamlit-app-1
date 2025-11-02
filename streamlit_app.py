@@ -24,10 +24,239 @@ except ImportError:
 
 
 # =========================
+#     DATA SOURCE PATHS
+# =========================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TRACKMAN_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
+ARM_ANGLE_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
+
+STUFF_MODEL_PATH = os.path.join(BASE_DIR, "NCAA_STUFF_PLUS_ALL.joblib")
+WHIFF_MODEL_PATH = os.path.join(BASE_DIR, "whiff_model_grouped_training.joblib")
+
+
+# =========================
+#    SHARED UTILITIES
+# =========================
+
+def normalize_pitch(raw: str) -> str:
+    """Map arbitrary pitch labels into canonical buckets used across the app."""
+    if not isinstance(raw, str):
+        return "undefined"
+
+    token = raw.strip().lower().replace("-", "").replace(" ", "")
+    aliases = {
+        # Fastballs
+        "fourseam": "fastball",
+        "fourseamfastball": "fastball",
+        "fastball": "fastball",
+        "ff": "fastball",
+        "fa": "fastball",
+        "ridingfastball": "fastball",
+        # Sinkers / two-seamers
+        "sinker": "sinker",
+        "si": "sinker",
+        "twoseam": "sinker",
+        "2s": "sinker",
+        "ts": "sinker",
+        # Cutter
+        "cutter": "cutter",
+        "fc": "cutter",
+        # Sliders
+        "slider": "slider",
+        "sl": "slider",
+        "gyroslider": "slider",
+        "twoplaneslider": "slider",
+        "sweeper": "slider",
+        # Curveballs
+        "curve": "curveball",
+        "curveball": "curveball",
+        "cb": "curveball",
+        "knucklecurve": "curveball",
+        "kc": "curveball",
+        "slurve": "curveball",
+        "slowcurve": "curveball",
+        # Changeups
+        "change": "changeup",
+        "changeup": "changeup",
+        "ch": "changeup",
+        "movementbasedchangeup": "changeup",
+        "velobasedchangeup": "changeup",
+        # Splitters
+        "splitter": "splitter",
+        "sp": "splitter",
+        "splitchange": "splitter",
+        # Knuckleball
+        "knuckleball": "knuckleball",
+        "kn": "knuckleball",
+        # Everything else
+        "other": "other",
+        "unknown": "undefined",
+        "undefined": "undefined",
+    }
+    return aliases.get(token, "undefined")
+
+
+def process_relheight(df: pd.DataFrame) -> pd.DataFrame:
+    """Team-supplied adjustment to smooth TrackMan release height readings."""
+
+    excluded_pitchers = {"Bunnell, Jack"}
+
+    overall = (
+        df.groupby("Pitcher")["Relheight"]
+        .mean()
+        .rename("player_overall_avg_relheight")
+        .reset_index()
+    )
+
+    df_non_excluded = df[~df["Pitcher"].isin(excluded_pitchers)].copy()
+    per_day = (
+        df_non_excluded.groupby(["Pitcher", "Date"])["Relheight"]
+        .mean()
+        .rename("player_date_avg_relheight")
+        .reset_index()
+    )
+
+    diffs = per_day.merge(overall, on="Pitcher", how="left")
+    diffs["diff_relheight"] = (
+        diffs["player_overall_avg_relheight"] - diffs["player_date_avg_relheight"]
+    )
+
+    avg_diff = (
+        diffs.groupby("Date")["diff_relheight"]
+        .mean()
+        .rename("avg_diff_relheight")
+        .reset_index()
+    )
+
+    df = df.merge(avg_diff, on="Date", how="left")
+    df.rename(columns={"Relheight": "relheight_uncleaned"}, inplace=True)
+    df["avg_diff_relheight"] = df["avg_diff_relheight"].fillna(0)
+    df["Relheight"] = df["relheight_uncleaned"] + df["avg_diff_relheight"]
+    df["Relheight"] = df["Relheight"].fillna(df["relheight_uncleaned"])
+    return df
+
+
+def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+    """Feature engineering used by the TJ Stuff+ / xWhiff models for TrackMan exports."""
+
+    needed_cols = [
+        "pitcher",
+        "relside",
+        "relspeed",
+        "spinrate",
+        "extension",
+        "relheight",
+        "horzbreak",
+        "inducedvertbreak",
+        "autopitchtype",
+        "pitchuid",
+    ]
+    df = df[[col for col in needed_cols if col in df.columns]].copy()
+
+    df_hand = (
+        df.groupby("pitcher", as_index=False)["relside"].mean().rename(columns={"relside": "avg_side"})
+    )
+    df_hand["pitcher_hand"] = np.where(df_hand["avg_side"] > 0, "R", "L")
+    df = df.merge(df_hand[["pitcher", "pitcher_hand"]], on="pitcher", how="left")
+
+    df = df.rename(
+        columns={
+            "relspeed": "start_speed",
+            "spinrate": "spin_rate",
+            "extension": "extension",
+            "relheight": "z0",
+            "relside": "x0",
+            "horzbreak": "ax",
+            "inducedvertbreak": "az",
+            "autopitchtype": "pitch_type",
+        }
+    )
+
+    df["ax"] = np.where(df["pitcher_hand"] == "L", -df["ax"], df["ax"])
+    df["x0"] = np.where(df["pitcher_hand"] == "L", -df["x0"], df["x0"])
+
+    fastball_types = ["Four-Seam", "Sinker"]
+    df_fb = df[df["pitch_type"].isin(fastball_types)].copy()
+    df_agg = (
+        df_fb.groupby(["pitcher", "pitch_type"], as_index=False)
+        .agg(
+            avg_fastball_speed=("start_speed", "mean"),
+            avg_fastball_az=("az", "mean"),
+            avg_fastball_ax=("ax", "mean"),
+            count=("start_speed", "count"),
+        )
+        .sort_values(["count", "avg_fastball_speed"], ascending=[False, False])
+        .drop_duplicates(subset=["pitcher"], keep="first")
+    )
+
+    df = df.merge(
+        df_agg[["pitcher", "avg_fastball_speed", "avg_fastball_az", "avg_fastball_ax"]],
+        on="pitcher",
+        how="left",
+    )
+
+    df["speed_diff"] = df["start_speed"] - df["avg_fastball_speed"]
+    df["az_diff"] = df["az"] - df["avg_fastball_az"]
+    df["ax_diff"] = df["ax"] - df["avg_fastball_ax"]
+    df["is_fastball"] = df["pitch_type"].isin(fastball_types)
+    df["z0"] = df["z0"] * 12
+    df["x0"] = df["x0"] * 12
+    return df
+
+
+def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
+    """Run TJ Stuff+ and xWhiff models and append scaled outputs to the frame."""
+
+    features = [
+        "start_speed",
+        "spin_rate",
+        "extension",
+        "az",
+        "ax",
+        "x0",
+        "z0",
+        "speed_diff",
+        "az_diff",
+        "ax_diff",
+        "is_fastball",
+    ]
+
+    for col in features:
+        df_for_model[col] = pd.to_numeric(df_for_model[col], errors="coerce")
+
+    stuff_model = joblib.load(STUFF_MODEL_PATH)
+    whiff_model = joblib.load(WHIFF_MODEL_PATH)
+
+    df_for_model["target"] = stuff_model.predict(df_for_model[features])
+
+    target_mean_2023 = 0.011532333993710725
+    target_std_2023 = 0.009399038486978739
+    df_for_model["target_zscore"] = (
+        (df_for_model["target"] - target_mean_2023) / target_std_2023
+    )
+    df_for_model["tj_stuff_plus"] = 100 - (df_for_model["target_zscore"] * 10)
+    df_for_model["xWhiff"] = whiff_model.predict(df_for_model[features])
+    return df_for_model
+
+
+def convert_tilt_to_float(tilt_value: str | float | int) -> float:
+    """Convert HH:MM tilt strings into decimal clock values (e.g., 1:45 → 1.75)."""
+
+    if isinstance(tilt_value, (int, float)):
+        return float(tilt_value)
+    if isinstance(tilt_value, str) and ":" in tilt_value:
+        try:
+            hours, minutes = tilt_value.split(":")
+            return float(hours) + float(minutes) / 60
+        except ValueError:
+            return np.nan
+    return np.nan
+
+
+# =========================
 #      LOAD BASE DATA
 # =========================
-TM_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
-df = pd.read_csv(TM_URL)
+df = pd.read_csv(TRACKMAN_URL)
 
 # Tag source and dedupe
 df["Source"] = "Preseason"
@@ -39,6 +268,7 @@ elif "PitchUID" in df.columns:
 # Normalize headers so downstream code can rely on TitleCase columns like:
 # 'Platelocside','Platelocheight','Relspeed','Spinrate', etc.
 df.columns = [col.strip().capitalize() for col in df.columns]
+df = df.loc[:, ~df.columns.duplicated()].copy()
 
 # Ensure Pitcherabbrevname exists and is filled
 if "Pitcherabbrevname" not in df.columns:
@@ -49,44 +279,77 @@ else:
 # Clean spaces and ensure string type
 df["Pitcherabbrevname"] = df["Pitcherabbrevname"].astype(str).str.strip()
 
-# --- Canonical pitchtype normalization (single source of truth) ---
-def normalize_pitch(s: str) -> str:
-    if not isinstance(s, str):
-        return "undefined"
-    t = s.strip().lower().replace("-", "").replace(" ", "")
-    aliases = {
-        # fastballs
-        "fourseam": "fastball", "4s": "fastball", "ff": "fastball", "fa": "fastball",
-        "ridingfastball": "fastball", "fourseamfastball": "fastball", "fastball": "fastball",
-        # sinker / 2-seam
-        "twoseam": "sinker", "2s": "sinker", "ts": "sinker", "sinker": "sinker", "si": "sinker",
-        # cutter
-        "cutter": "cutter", "fc": "cutter",
-        # sliders
-        "slider": "slider", "sl": "slider", "gyroslider": "slider",
-        "twoplaneslider": "slider", "sweeper": "slider",
-        # curves
-        "curve": "curveball", "curveball": "curveball", "cb": "curveball",
-        "knucklecurve": "curveball", "kc": "curveball", "slurve": "curveball", "slowcurve": "curveball",
-        # changeups
-        "change": "changeup", "changeup": "changeup", "ch": "changeup",
-        "movementbasedchangeup": "changeup", "velobasedchangeup": "changeup",
-        # splitter / split-change
-        "splitter": "splitter", "sp": "splitter", "splitchange": "splitter",
-        # knuckle
-        "knuckleball": "knuckleball", "kn": "knuckleball",
-        # other/unknown
-        "other": "other", "unknown": "undefined", "undefined": "undefined"
-    }
-    return aliases.get(t, "undefined")
+# Smooth release heights if requested
+if {"Relheight", "Pitcher", "Date"}.issubset(df.columns):
+    df = process_relheight(df)
 
-# Build canonical Pitchtype from first available source, then normalize
+# Create swing/contact/whiff flags consistent with the historical app logic
+exit_speed = pd.to_numeric(df.get("Exitspeed"), errors="coerce")
+pitch_call = df.get("Pitchcall", pd.Series("", index=df.index)).astype(str)
+df["Swing"] = (
+    (exit_speed > 0)
+    | pitch_call.str.contains("swing", case=False, na=False)
+    | pitch_call.str.contains("foul", case=False, na=False)
+)
+df["Contact"] = np.where(exit_speed > 0, "Yes", "No")
+df["Whiff"] = df["Swing"] & (df["Contact"].str.lower() == "no")
+
+if {"Balls", "Strikes"}.issubset(df.columns):
+    df["Count"] = df["Balls"].astype(str) + "-" + df["Strikes"].astype(str)
+
+# =========================
+#   RUN MODELS ON TRACKMAN
+# =========================
+df_for_model = df.copy()
+df_for_model.columns = [c.lower() for c in df_for_model.columns]
+if "pitchuid" not in df_for_model.columns and "Pitchuid" in df.columns:
+    df_for_model["pitchuid"] = df["Pitchuid"].values
+
+df_for_model = feature_engineering(df_for_model)
+df_scored = run_model_and_scale(df_for_model)
+
+if "pitchuid" in df_scored.columns and "Pitchuid" in df.columns:
+    merge_cols = ["pitchuid", "target", "target_zscore", "tj_stuff_plus", "xWhiff"]
+    df = df.merge(
+        df_scored[merge_cols],
+        left_on="Pitchuid",
+        right_on="pitchuid",
+        how="left",
+    )
+    df.drop(columns=["pitchuid"], inplace=True, errors="ignore")
+
+
+# =========================
+#   ENRICH TRACKMAN DATA
+# =========================
+armangle_df = pd.read_csv(ARM_ANGLE_URL)
+df = df.merge(
+    armangle_df[["Pitcher", "armangle_prediction"]],
+    on="Pitcher",
+    how="left",
+)
+
+if "Date" in df.columns:
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce").dt.date
+
+if "Batterside" in df.columns:
+    df["Batterside"] = df["Batterside"].replace({"R": "Right", "L": "Left"})
+
+if "Pitcherthrows" in df.columns:
+    df["Pitcherthrows"] = df["Pitcherthrows"].replace({"R": "Right", "L": "Left"})
+elif "Pitcherhand" in df.columns:
+    df["Pitcherthrows"] = df["Pitcherhand"].map({"R": "Right", "L": "Left"})
+
+if "Tilt" in df.columns:
+    df["Tilt_float"] = df["Tilt"].apply(convert_tilt_to_float)
+
+
+# --- Canonical pitchtype normalization (single source of truth) ---
 src_cols = ["Pitchtype", "Autopitchtype", "Taggedpitchtype"]
 first_available = next((c for c in src_cols if c in df.columns), None)
 df["Pitchtype"] = df[first_available] if first_available else "undefined"
 df["Pitchtype"] = df["Pitchtype"].apply(normalize_pitch)
 
-# Ensure Taggedpitchtype exists and is normalized to the same canonical labels
 if "Taggedpitchtype" not in df.columns:
     df["Taggedpitchtype"] = df["Pitchtype"]
 df["Taggedpitchtype"] = df["Taggedpitchtype"].apply(normalize_pitch)
@@ -122,13 +385,27 @@ swing_flag = (
 
 # Contact outcome stored as "Yes"/"No" and reused for Whiff determination
 df["Contact"] = np.where(exit_speed > 0, "Yes", "No")
-df["Swing"] = swing_flag
-df["Whiff"] = swing_flag & (df["Contact"].str.lower() == "no")
+existing_swing = df.get("Swing")
+if existing_swing is not None:
+    df["Swing"] = existing_swing.fillna(False) | swing_flag
+else:
+    df["Swing"] = swing_flag
+
+whiff_flag = swing_flag & (df["Contact"].str.lower() == "no")
+existing_whiff = df.get("Whiff")
+if existing_whiff is not None:
+    df["Whiff"] = existing_whiff.fillna(False) | whiff_flag
+else:
+    df["Whiff"] = whiff_flag
 
 # Strike definitions exclude bunts entirely
 strike_flag = pitch_call.str.contains("strike", na=False) | pitch_call.str.contains("foul", na=False)
 strike_flag &= ~pitch_call.str.contains("bunt", na=False)
-df["Strike"] = strike_flag
+existing_strike = df.get("Strike")
+if existing_strike is not None:
+    df["Strike"] = existing_strike.fillna(False) | strike_flag
+else:
+    df["Strike"] = strike_flag
 
 # In-zone and Competitive Location flags
 df["Inzone"] = (
