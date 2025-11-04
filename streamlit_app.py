@@ -8,6 +8,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64tz_dtype
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.patches import Rectangle, Polygon, Ellipse, Arc  # used in plotting functions
@@ -339,12 +340,20 @@ if "Date" in df.columns:
         mask = parsed_dates.isna() & date_series.notna()
         if not mask.any():
             break
-        parsed_dates.loc[mask] = pd.to_datetime(date_series.loc[mask], format=fmt, errors="coerce")
+        fallback_parsed = pd.to_datetime(
+            date_series.loc[mask], format=fmt, errors="coerce"
+        )
+        if is_datetime64tz_dtype(fallback_parsed):
+            fallback_parsed = fallback_parsed.dt.tz_localize(None)
+        parsed_dates.loc[mask] = fallback_parsed
 
     # Final fallback: let pandas attempt to infer any remaining formats
     mask = parsed_dates.isna() & date_series.notna()
     if mask.any():
-        parsed_dates.loc[mask] = pd.to_datetime(date_series.loc[mask], errors="coerce")
+        inferred = pd.to_datetime(date_series.loc[mask], errors="coerce", utc=True)
+        if is_datetime64tz_dtype(inferred):
+            inferred = inferred.dt.tz_localize(None)
+        parsed_dates.loc[mask] = inferred
 
     df["Date"] = parsed_dates.dt.date
 
