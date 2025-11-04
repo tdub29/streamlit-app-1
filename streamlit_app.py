@@ -330,7 +330,23 @@ df = df.merge(
 )
 
 if "Date" in df.columns:
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce").dt.date
+    date_series = df["Date"]
+    parsed_dates = pd.to_datetime(date_series, format="%Y-%m-%d", errors="coerce")
+
+    # Try additional common formats for entries that did not parse initially
+    fallback_formats = ["%m/%d/%Y", "%m-%d-%Y", "%Y/%m/%d"]
+    for fmt in fallback_formats:
+        mask = parsed_dates.isna() & date_series.notna()
+        if not mask.any():
+            break
+        parsed_dates.loc[mask] = pd.to_datetime(date_series.loc[mask], format=fmt, errors="coerce")
+
+    # Final fallback: let pandas attempt to infer any remaining formats
+    mask = parsed_dates.isna() & date_series.notna()
+    if mask.any():
+        parsed_dates.loc[mask] = pd.to_datetime(date_series.loc[mask], errors="coerce")
+
+    df["Date"] = parsed_dates.dt.date
 
 if "Batterside" in df.columns:
     df["Batterside"] = df["Batterside"].replace({"R": "Right", "L": "Left"})
