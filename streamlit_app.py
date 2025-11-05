@@ -1526,7 +1526,7 @@ st.sidebar.title("Navigation")
 pages = {
     
     "Pitch Metric AVG Table": display_pitch_metrics,
-    "Post-Series Report": generate_pitch_reports_page,  # Add this,
+    # "Post-Series Report": generate_pitch_reports_page,  # Add this,
     # "NEW Stuff and Velo throughout game": lambda: plot_rolling_3_pitch_averages(filtered_data),
     "Pitch Locations - RHH/LHH": plot_pitch_locations,
 
