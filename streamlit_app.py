@@ -11,6 +11,7 @@ import pandas as pd
 from pandas.api.types import is_datetime64tz_dtype
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.colors import Normalize
 from matplotlib.patches import Rectangle, Polygon, Ellipse, Arc  # used in plotting functions
 from tqdm import tqdm
 import streamlit as st
