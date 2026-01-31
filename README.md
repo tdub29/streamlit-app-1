@@ -2,7 +2,35 @@
 
 This repo contains Streamlit applications and modeling assets for pitching analytics.
 
-## Project structure (proposed + applied)
+## Project overview
+
+So much of this repo is thanks to the great work of Thomas Nestico, Kyle Bland, and Max Bay for providing examples of models or other essential code in their GitHub repos.
+
+This repo contains a Streamlit dashboard for USD baseball pitcher analysis. The app loads TrackMan pitch-by-pitch data, enriches it with derived metrics (pitch classification, release/movement metrics, count context, and Stuff+/whiff scores), and surfaces visuals for pitch design, command, and usage.
+
+### What the Streamlit app shows
+
+- **Pitch metrics table**: Per-pitcher averages for velocity, movement, release, and model outputs (Stuff+/whiff).
+- **Pitch locations (RHH/LHH)**: Plate-location plots split by batter handedness.
+- **Break plots**: Movement profiles and Stuff+ overlays to compare shapes by pitch type.
+- **Release plots + command ellipses**: Release point clustering and confidence ellipses for command.
+- **Stuff+ over time**: Rolling trends for model outputs by pitch type.
+- **Tilt plots + ideal locations**: Polar plots for tilt and model-driven target locations.
+- **Raw data view**: Filtered TrackMan rows for troubleshooting or export.
+
+### Data inputs and expectations
+
+- **Default data files**: The app reads TrackMan exports such as `data/raw/usd_baseball_TM_master_file.csv` and `data/raw/armangle_final_fall_usd.csv`.
+- **Required columns**: The workflows rely on pitcher identifiers, pitch type labels, release metrics (speed, height, side), movement metrics, plate location, dates, and pitch counts (e.g., `Pitcher`, `Pitchtype`, `Relspeed`, `Relheight`, `Horzbreak`, `Inducedvertbreak`, `Platelocside`, `Platelocheight`, `Date`, `PitcherPitchNo`).
+- **Report tables**: `pitcher_reports.py` uses percentile and run-value tables stored in `data/raw` (for example `pitch_metric_percentiles.csv`, `count_summary_table.csv`, and `run_values.csv`).
+
+### Models and artifacts
+
+- **Stuff+ and whiff models**: `models/NCAA_STUFF_PLUS_ALL.joblib` and `models/whiff_model_grouped_training.joblib` score pitch quality.
+- **Run value model**: `models/rv_with_plateloc.joblib` supports run-value scoring in the full app.
+- **Supporting assets**: static images used in reports live in `assets/`, with configuration defaults stored under `config/`.
+
+## Project structure
 
 ```
 .
@@ -33,14 +61,6 @@ This repo contains Streamlit applications and modeling assets for pitching analy
 - **Folders**: use short, descriptive names (`data/raw`, `models`, `assets/images`).
 - **Python modules**: use `snake_case` (`streamlit_app.py`, `pitcher_reports.py`).
 - **Model artifacts**: prefix with model intent (`stuff_plus_*.joblib`) when adding new versions.
-
-## README content recommendations (for future expansion)
-
-- **Project overview**: short summary of the use case and data sources.
-- **Quickstart**: setup, run, and environment requirements.
-- **Data dictionary**: link to dataset schema and provenance.
-- **Model registry**: list of models with training windows and metrics.
-- **Operational runbook**: deployment steps and rollback guidance.
 
 ## Configuration management
 
