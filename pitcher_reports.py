@@ -10,6 +10,10 @@ from matplotlib.colors import TwoSlopeNorm
 from datetime import datetime, timedelta
 import os
 import streamlit as st
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+ASSETS_DIR = os.path.join(BASE_DIR, "assets", "images")
 # ------------------------------------------------------------------
 # Reset and force white backgrounds and navy text/lines
 # ------------------------------------------------------------------
@@ -41,7 +45,7 @@ def lighten_color(color, amount=0.7):
 # ------------------------------------------------------------------
 # Load the percentile reference CSV (ensure it's in your working directory)
 # ------------------------------------------------------------------
-percentile_table = pd.read_csv("pitch_metric_percentiles.csv")
+percentile_table = pd.read_csv(os.path.join(DATA_DIR, "pitch_metric_percentiles.csv"))
 
 def get_dynamic_norm(pitch_type, metric):
     rows = percentile_table[percentile_table["pitch_type"] == pitch_type]
@@ -65,7 +69,7 @@ def get_home_plate():
 # ------------------------------------------------------------------
 # Load the count summary CSV for the table
 # ------------------------------------------------------------------
-df_count_summary = pd.read_csv("count_summary_table.csv")
+df_count_summary = pd.read_csv(os.path.join(DATA_DIR, "count_summary_table.csv"))
 
 def plot_count_summary_table(ax, df):
     """
@@ -406,7 +410,7 @@ def generate_reports(filtered_df):
     # Row 1: Logo
     ax_logo = fig.add_subplot(gs[0, 0:2])
     ax_logo.set_facecolor('white')
-    plot_logo(ax_logo, "San_Diego_Toreros_logo.svg.png")
+    plot_logo(ax_logo, os.path.join(ASSETS_DIR, "San_Diego_Toreros_logo.svg.png"))
 
     # Row 2: Header text
     ax_header = fig.add_subplot(gs[1, 0:2])

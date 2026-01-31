@@ -19,6 +19,11 @@ from matplotlib.colors import Normalize
 # from pitcher_reports import generate_report
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data", "raw")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+RAW_BASE_URL = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/data/raw"
+
 
 try:
     import sklearn
@@ -115,7 +120,7 @@ def Trumedia_feature_engineering(df):
     # -------------------------------
     # 4. Merge with run_values
     # -------------------------------
-    run_values = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/run_values.csv")
+    run_values = pd.read_csv(f"{RAW_BASE_URL}/run_values.csv")
     run_values = run_values.rename(columns={"event": "event_category"})
     df_joined = pd.merge(
         df,
@@ -479,7 +484,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
     import joblib  # Now import the local joblib
     
     # Construct the path to your joblib file
-    model_path = os.path.join(repo_path, "NCAA_STUFF_PLUS_ALL.joblib")
+    model_path = os.path.join(MODELS_DIR, "NCAA_STUFF_PLUS_ALL.joblib")
     
     # Load the model
     model = joblib.load(model_path)
@@ -516,7 +521,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
         100 - (df_for_model["target_zscore"] * 10)
     )
 
-    whiff_model = joblib.load("whiff_model_grouped_training.joblib")
+    whiff_model = joblib.load(os.path.join(MODELS_DIR, "whiff_model_grouped_training.joblib"))
 
     # --- PREDICT WHIFF (xWhiff) ---
     df_for_model["xWhiff"] = whiff_model.predict(df_for_model[features])
@@ -525,7 +530,7 @@ def run_model_and_scale(df_for_model: pd.DataFrame) -> pd.DataFrame:
 
 
 # Load the CSV file
-file_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/usd_baseball_TM_master_file.csv"
+file_path = f"{RAW_BASE_URL}/usd_baseball_TM_master_file.csv"
 df = pd.read_csv(file_path)
 
 
@@ -537,10 +542,10 @@ df.drop_duplicates(subset=['PitchUID'], inplace=True)
 df.columns = [col.strip().capitalize() for col in df.columns]
 
 # Load p_guys.csv
-p_guys_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/p_guys.csv")
+p_guys_df = pd.read_csv(f"{RAW_BASE_URL}/p_guys.csv")
 
 # Load USDPITCHINGYTD.csv
-trufilepath = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/USDPITCHINGYTD.csv"
+trufilepath = f"{RAW_BASE_URL}/USDPITCHINGYTD.csv"
 Trumediadf = pd.read_csv(trufilepath)
 
 p_guys_df['gameDate'] = pd.to_datetime(
@@ -694,7 +699,7 @@ if "pitchuid" in df_for_model.columns and "Pitchuid" in df.columns:
 import pandas as pd
 
 # 1) Load the first CSV
-trumedia_df = pd.read_csv("https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/trumediatotrackmannamejoin.csv")
+trumedia_df = pd.read_csv(f"{RAW_BASE_URL}/trumediatotrackmannamejoin.csv")
 
 # 2) Rename 'pitcherAbbrevName' to 'pitcherabbrevname'
 trumedia_df.rename(columns={"pitcherAbbrevName": "pitcherabbrevname"}, inplace=True)
@@ -806,7 +811,7 @@ df = pd.concat([df, trudf_for_model], ignore_index=True, sort=False)
 
     
 # Load arm angle CSV
-armangle_path = "https://raw.githubusercontent.com/tdub29/streamlit-app-1/refs/heads/main/armangle_final_fall_usd.csv"
+armangle_path = f"{RAW_BASE_URL}/armangle_final_fall_usd.csv"
 armangle_df = pd.read_csv(armangle_path)
 
 # Merge arm angle data into df on 'Pitcher'
@@ -1609,7 +1614,7 @@ def plot_ideal_pitch_locations():
 
     # --- STEP 5: Load the Model ---
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    rv_model_path = os.path.join(BASE_DIR, "rv_with_plateloc.joblib")
+    rv_model_path = os.path.join(MODELS_DIR, "rv_with_plateloc.joblib")
     rv_model = joblib.load(rv_model_path)
 
     # The model requires these features:
