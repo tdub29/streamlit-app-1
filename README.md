@@ -1,3 +1,8 @@
+> **This app is live and maintained. Its analysis code now also lives in the flagship repo.**
+> The pitcher app here is the deployed Streamlit dashboard and stays the source for that
+> deployment. The consolidated, tested version of the underlying analysis is at
+> [tdub29/baseball-analytics](https://github.com/tdub29/baseball-analytics) under `apps/pitcher/`.
+
 # TORERO PITCHING
 
 This repo contains Streamlit applications and modeling assets for pitching analytics.
