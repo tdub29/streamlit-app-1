@@ -86,3 +86,7 @@ This repo contains a Streamlit dashboard for USD baseball pitcher analysis. The 
    ```
    streamlit run streamlit_app.py
    ```
+
+## More projects
+
+More of my work and contact details are at [twhite.dev](https://twhite.dev).
